@@ -17,6 +17,7 @@ module.exports = [
       ['/babel/babel', 'babel小计'],
       ['/uniapp/uniapp', 'uniapp'],
       ['/three/three', 'three'],
+      ['/question/question', 'question'],
     ]
   },
 ]
