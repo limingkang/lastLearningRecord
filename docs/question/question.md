@@ -398,12 +398,104 @@ function numbersequal(a,b){
 }
 ```
 
+## ['1', '2', '3'].map(parseInt)
+map函数的第一个函数参数callback可以接收三个参数，其中第一个参数代表当前被处理的元素，而第二个参数代表该元素的索引
+- parseInt是用来解析字符串的，使字符串成为指定基数的整数。parseInt(string, radix)接收两个参数，第一个表示被处理的值（字符串），第二个表示为解析时的
+基数radix 一个介于2和36之间的整数(数学系统的基础)，表示上述字符串的基数。默认为10。返回值 返回一个整数或NaN
 
+- 在radix为 undefined，或者radix为 0 或者没有指定的情况下，JavaScript 作如下处理：
+1. 如果字符串 string 以"0x"或者"0X"开头, 则基数是16 (16进制).
+2. 如果字符串 string 以"0"开头, 基数是8（八进制）或者10（十进制），那么具体是哪个基数由实现环境决定。ECMAScript 5 规定使用10，但是并不是所有的浏览器
+都遵循这个规定。因此，永远都要明确给出radix参数的值
+3. 如果字符串 string 以其它任何值开头，则基数是10 (十进制)
 
+- 了解这两个函数后，我们可以模拟一下运行情况
+1. parseInt('1', 0) //radix为0且string参数不以“0x”和“0”开头时，按照10为基数处理。这个时候返回1
+2. parseInt('2', 1) //基数为1（1进制）表示的数中，最大值小于2，所以无法解析，返回NaN
+3. parseInt('3', 2) //基数为2（2进制）表示的数中，最大值小于3，所以无法解析，返回NaN
+4. map函数返回的是一个数组，所以最后结果为[1, NaN, NaN]
 
+## 操作符问题
+首先对于操作符，我们先看下对应规律
+- 加性操作符：如果只有一个操作数是字符串，则将另一个操作数转换为字符串，然后再将两个字符串拼接起来
+- 乘性操作符：如果有一个操作数不是数值，则在后台调用 Number()将其转换为数值
+- Javascript中所有对象基本都是先调用valueOf方法，如果不是数值，再调用toString方法。
+- 后边的“+”将作为一元操作符，如果操作数是字符串，将调用Number方法将该操作数转为数值，如果操作数无法转为数值，则为NaN
+``` js
+1 + "1"           // 11
+2 * "2"           // 4
+[1, 2] + [2, 1]   // 1,22,1
+"a" + + "b"       // aNaN
+```
 
+## input中文输入事件
+input框在输入切换中文输入法时的输入事件
+- compositionstart事件只有在输入中文时才会触发，触发事件在input事件之前
+- compositionend表示结束中文输入时触发的事件，不管最后输入的是不是中文都会触发
+- input事件就是最后输入到输入框的事件
+``` js
+$(() => {
+  let typing = false;
+  // 输入中文之前
+  $('#ahri').on('compositionstart',function(event) {
+    console.log('compositionstart');
+    typing = true;
+  })
+  // 输入中文之后
+  $('#ahri').on('compositionend',function(event) {
+    console.log('compositionend');
+    typing = false;
+    input(event);
+  })
+  // 真正输入文字
+  $('#ahri').on('input',input)
+  function input(event) {
+    // 正在输入中文时就不执行后面的代码
+    if(typing) return;
+    console.log(event.target.value);
+  }
+})
+```
 
+## 埋点发送gif图
+工作中，用于前端监控，比如曝光、点击、热点、心跳等等，谷歌和百度的都是用的1x1 像素的透明 gif 图片能够完成整个 - HTTP 请求+响应（尽管不需要响应内容）
 
+- 触发 GET 请求之后不需要获取和处理数据、服务器也不需要发送数据
+- 跨域友好
+- 不会阻塞页面加载，影响用户的体验，只要new Image对象就好了，一般情况下也不需要append到DOM中，通过它的onerror和onload事件来检测发送状态
+- 相比 XMLHttpRequest 对象发送 GET 请求，性能上更好
+- GIF的最低合法体积最小（最小的BMP文件需要74个字节，PNG需要67个字节，而合法的GIF，只需要43个字节）
+- 图片请求不占用 Ajax 请求限额
+``` js
+<script type="text/javascript">
+ var thisPage = location.href;
+ var referringPage = (document.referrer) ? document.referrer : "none";
+ var beacon = new Image();
+ beacon.src = "http://www.example.com/logger/beacon.gif?page=" + encodeURI(thisPage)
+ + "&ref=" + encodeURI(referringPage);
+</script>
+```
+
+## 数组push用到obj
+``` js
+var obj = {
+    '2': 3,
+    '3': 4,
+    'length': 2,
+    'splice': Array.prototype.splice,
+    'push': Array.prototype.push
+}
+obj.push(1)
+obj.push(2)
+console.log(obj) 
+// 结果：[,,1,2], length为4
+// 伪数组（ArrayLike）
+```
+MDN解释说push方法应该是根据数组的length来根据参数给数组创建一个下标为length的属性:
+- 使用第一次push，obj对象的push方法设置 obj[2]=1; obj.length+=1
+- 使用第二次push，obj对象的push方法设置 obj[3]=2; obj.length+=1
+- 使用console.log输出的时候，因为obj具有 length 属性和 splice 方法，故将其作为数组进行打印
+- 打印时因为数组未设置下标为 0 1 处的值，故打印为empty，主动 obj[0] 获取为 undefined
 
 
 
