@@ -1,1 +1,3 @@
-学点啥呢
+``` shell
+npm install --registry=https://registry.npm.taobao.org
+```
