@@ -83,7 +83,9 @@ test
 
 [OPPO快应用平台](https://open.oppomobile.com/)
 
-[VIVO快应用平台](https://dev.vivo.com.cn/)
+[VIVO快应用开发指南](https://dev.vivo.com.cn/documentCenter/doc/631)
+
+[VIVO快应用广告SDK接入指南](https://quickapp-sdk.vivo.com.cn/site/quickstart.html)
 
 [快应用广告接入指南](https://quickapp.vivo.com.cn/quickapp-ad-api-gide/amp/)
 
