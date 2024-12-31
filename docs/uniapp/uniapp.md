@@ -1,8 +1,17 @@
+## 常用基础知识介绍
+1. 有些页面使用nvue书写，专门给app使用，使用基于weex改进的原生渲染引擎，提供原生渲染能力，[参考](https://zh.uniapp.dcloud.io/tutorial/nvue-outline.html)
+2. 差异化编译的时候，我们看到app-plus和app两种，app-plus其实是提供了更多多原生系统交互工具，如调用拍照能，而app只是说是app平台编译，性能上其实app更强
+3. 在不同屏幕大小，可以选择性动态添加一些页面显示，来做大屏幕适配，可[参考](https://uniapp.dcloud.net.cn/collocation/pages.html#leftwindow)
+4. components文件夹内部组件自动注册到全局，是一种[easycom模式](https://uniapp.dcloud.net.cn/component/#easycom)
+5. static静态资源目录，可以选择性给不同平台打入不同资源，[参考](https://uniapp.dcloud.net.cn/tutorial/platform.html#static)
+6. uni-ui组件一定慎用，该组件在不同端小程序、app端等差异过大，只有在h5上才和文档上表现型一样
+7. manifest.json文件是整体多端配置文件，我们可以使用hbuilder打卡，可以进行可视化配置或者直接编辑器打开，改参数，例如改掉微信appid即可使用
+
 ## andriod开发
-test
+[android原生工程配置](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/android.html)
 
 ## ios开发
-test
+[ios原生工程配置](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/ios.html)
 
 ## 进阶使用
 本文主要介绍基础功能的使用方法，小程序和快应用相关的不再介绍，比较简单，只需要按要求生成相应包体，通过小程序工具或者快应用工具上传到对应目标载体上，发布上线即可
