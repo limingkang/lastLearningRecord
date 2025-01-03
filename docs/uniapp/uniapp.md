@@ -1,4 +1,11 @@
-## 常用基础知识介绍
+## 介绍
+UniApp 编译后的 Android 项目代码默认是基于 Java 的，而不是 Kotlin。这是因为 UniApp 使用的是 Apache Cordova 和其插件体系来构建跨平台应用，而 Cordova 的原生 Android 支持主要
+是围绕 Java 构建的。不过，从技术角度来说，Cordova 和 UniApp 并不阻止你在项目中使用 Kotlin
+
+UniApp 编译后的 iOS 项目默认是基于 Objective-C (OC) 的，而不是 Swift。这是因为 UniApp 使用的是 Apache Cordova 和其插件体系来构建跨平台应用，而 Cordova 的原生 iOS 支持主
+要是围绕 Objective-C 构建的。然而，这并不意味着你不能在编译后的项目中使用 Swift。实际上，在编译后的 Xcode 项目中，你可以混合使用 Objective-C 和 Swift，并且可以逐步将部
+分代码转换为 Swift
+
 1. 有些页面使用nvue书写，专门给app使用，使用基于weex改进的原生渲染引擎，提供原生渲染能力，[参考](https://zh.uniapp.dcloud.io/tutorial/nvue-outline.html)
 2. 差异化编译的时候，我们看到app-plus和app两种，app-plus其实是提供了更多多原生系统交互工具，如调用拍照能，而app只是说是app平台编译，性能上其实app更强
 3. 在不同屏幕大小，可以选择性动态添加一些页面显示，来做大屏幕适配，可[参考](https://uniapp.dcloud.net.cn/collocation/pages.html#leftwindow)
@@ -7,8 +14,69 @@
 6. uni-ui组件一定慎用，该组件在不同端小程序、app端等差异过大，只有在h5上才和文档上表现型一样
 7. manifest.json文件是整体多端配置文件，我们可以使用hbuilder打卡，可以进行可视化配置或者直接编辑器打开，改参数，例如改掉微信appid即可使用
 
-## andriod开发
-[android原生工程配置](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/android.html)
+## android开发
+首先android打包需要证书签名，证书大概会有以下四种方式生成，这里我们采用第四种
+1. [Android平台签名证书(.keystore)生成指南](https://ask.dcloud.net.cn/article/35777)
+2. 使用香蕉云编实现自定义证书，其实就是第一种方式网页端的实现[地址](https://www.yunedit.com/login)
+3. 使用公共测试证书，大家都在用，有隐患不安全
+4. 使用unicloud云端证书，需要我们先注册[申请](https://dev.dcloud.net.cn/pages/common/login)
+
+uniapp打包的方式有两种，一种是云打包，一种是本地离线打包，我采用离线打包
+1. 云打包由于会上传代码及证书，很多人怕不安全，现在有一种新的云打包[安心打包](https://ask.dcloud.net.cn/article/37979)方式，不用传代码及证书，云打包远端配置下一键打包很方便，但是有次数限制
+现在是一天5次，超过需要交费排队
+2. 离线打包配置繁琐，但是可以随便打几次
+
+### 前置配置
+1. 隐私政策[androidPrivacy.json](https://uniapp.dcloud.net.cn/tutorial/app-privacy-android.html)配置
+2. 按照大小要求，完成app图标配置
+3. app的权限配置，[参考](https://uniapp.dcloud.net.cn/tutorial/app-permission-android.html)
+4. schema的配置，看需要，如果有需要通过h5直接唤起这个app则需要，[参考](https://uniapp.dcloud.net.cn/tutorial/app-android-schemes.html)
+``` js
+// 其实就是增加个配置
+"app-plus": {
+    "distribute": {
+      "android": {
+        "schemes": "testapp"
+        //...
+      },
+      //...
+    },
+    //...
+},
+// h5页面
+// <a href="testapp://abc">test:<a>
+// 获取参数
+onShow: function() {
+	var args= plus.runtime.arguments;
+	if(args){
+		// 处理args参数，如直达到某新页面等
+	}
+}
+```
+5. 安装[android studio](https://developer.android.google.cn/studio?hl=zh-cn)
+6. 下载官方给的包，里面包含框架壳子、离线[SDK](https://nativesupport.dcloud.net.cn/AppDocs/download/android.html)
+
+### 应用和证书创建
+...
+
+### 本地离线打包
+...
+
+### 上传到应用市场
+安卓市场分为：第三方市场（如：应用宝、360手机助手、豌豆荚），和手机厂商市场（如：华为、OPPO、VIVO、小米等）,我们只分发主流的几个即可
+1. [vivo应用商店](https://dev.vivo.com.cn/promote/appStore)
+2. [华为应用商店](https://developer.honor.com/cn/doc/guides/100882?navation=dh41628589245440589826%2F1)
+3. [oppo应用商店](https://open.oppomobile.com/new/developmentDoc/info?id=10035)
+4. [小米应用商店](https://dev.mi.com/xiaomihyperos/app-distribute)
+
+具体更详细的app上架流程以及需要准备的东西，可以[参考](https://www.zhihu.com/tardis/bd/art/721651240)
+
+### 本地调试
+...
+
+### 参考文件
+1. [android原生工程配置](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/android.html)
+2. [证书生成](https://blog.csdn.net/weixin_46001736/article/details/131936047)
 
 ## ios开发
 [ios原生工程配置](https://nativesupport.dcloud.net.cn/AppDocs/usesdk/ios.html)
@@ -71,15 +139,14 @@ onLoad: function(options) {
 
 第五种需要动态生成一个带有参数的小程序二维码，我们可以通过调用[微信api](https://developers.weixin.qq.com/miniprogram/dev/OpenApiDoc/qrcode-link/qr-code/getUnlimitedQRCode.html)来实现，文档中有三种接口，应对不同场景，详细阅读文档即可
 
-
 ### andriod推送
-test
+...
 
 ### ios推送
-test
+...
 
 ### 广告接入
-test
+...
 
 ## 参考文档
 [uniapp官网](https://uniapp.dcloud.net.cn/quickstart-hx.html)
