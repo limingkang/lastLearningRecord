@@ -14,6 +14,28 @@ UniApp 编译后的 iOS 项目默认是基于 Objective-C (OC) 的，而不是 S
 6. uni-ui组件一定慎用，该组件在不同端小程序、app端等差异过大，只有在h5上才和文档上表现型一样
 7. manifest.json文件是整体多端配置文件，我们可以使用hbuilder打卡，可以进行可视化配置或者直接编辑器打开，改参数，例如改掉微信appid即可使用
 
+### 自定义字体和图标引入
+如果我们想使用自定义图标，首先我们可以使用自己的图标例如ttf文件等使用时候直接用css类名即可'customicons youxi'
+``` css
+@font-face {
+  font-family: "customicons"; /* Project id 2878519 */
+  src:url('/static/customicons.ttf') format('truetype');
+}
+
+.customicons {
+  font-family: "customicons" !important;
+}
+
+.youxi:before {
+  content: "\e60e";
+}
+```
+但是如果我们想使用自定义字体文件，小程序提供wx.loadFontFace加载第三方字体，或者直接加载本地字体，由于小程序不能使用font-face加载到自
+定义字体，得使用转码成css的[网站](https://transfonter.org/)，将转码后的css文件复制到项目，页面引入后，写好字体名称即可使用，注意转码时候选择打开
+Base64 encode，[参考文档](https://www.weingxing.cn/archives/105/comment-page-1)
+
+
+
 ## android开发
 首先android打包需要证书签名，证书大概会有以下四种方式生成，这里我们采用第四种
 1. [Android平台签名证书(.keystore)生成指南](https://ask.dcloud.net.cn/article/35777)
