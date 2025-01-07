@@ -34,7 +34,7 @@ UniApp 编译后的 iOS 项目默认是基于 Objective-C (OC) 的，而不是 S
 定义字体，得使用转码成css的[网站](https://transfonter.org/)，将转码后的css文件复制到项目，页面引入后，写好字体名称即可使用，注意转码时候选择打开
 Base64 encode，[参考文档](https://www.weingxing.cn/archives/105/comment-page-1)
 
-
+最新版本好像已经支持本地引入，只是你生成的ttf文件，需要选择支持web端的
 
 ## android开发
 首先android打包需要证书签名，证书大概会有以下四种方式生成，这里我们采用第四种
