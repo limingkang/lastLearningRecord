@@ -20,4 +20,12 @@ module.exports = [
       ['/question/question', 'question'],
     ]
   },
+  {
+    title: '新技术',
+    path: '/',
+    collapsable: false,
+    children: [
+      ['/web3/web3', 'web3'],
+    ]
+  },
 ]
