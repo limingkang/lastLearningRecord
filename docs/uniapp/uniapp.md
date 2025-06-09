@@ -136,6 +136,7 @@ Page({
 ```
 注意这种链接必须使用微信直接扫码，如果想通过h5页面来微信扫码中转到这个链接是不行的，因为h5打开后是使用浏览器打开的，所有链接都会被当做网页打开，如果想在h5页面内部调整到某个微信小程序页面，则得接入jssdk来实现，可以参考开发文档, [微信公众号接入文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html#63)
 ``` js
+// 注意这是指的是h5内嵌在微信小程序webview内部的页面
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js">
 document.getElementById('jumpButton').addEventListener('click', function() {
   wx.miniProgram.navigateToMiniProgram({
@@ -154,8 +155,8 @@ document.getElementById('jumpButton').addEventListener('click', function() {
   });
 });
 ```
-也可以使用标签跳转的sdk接入方式可以参考[sdk文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_Open_Tag.html#21)
-也可以使用云服务，就是认证较多[文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/staticstorage/jump-miniprogram.html)
+对于外部任意h5页面可以使用标签跳转的sdk接入方式可以参考[sdk文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_Open_Tag.html#21)
+需要接入使用云服务，其实就是文件传到微信服务器云托管[文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/staticstorage/jump-miniprogram.html)
 
 第三种分享到朋友圈其实就是调用对应生命周期配置即可，唯一值得注意的是，这个分享出去的小程序其实是个类似静态图片的小程序，在朋友圈点击直接进入查看，一旦操作则提示进入原小程序，同样内部的页面，例如relaunch等方法都会失效
 ``` js
