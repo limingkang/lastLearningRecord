@@ -134,6 +134,28 @@ Page({
   }
 })
 ```
+注意这种链接必须使用微信直接扫码，如果想通过h5页面来微信扫码中转到这个链接是不行的，因为h5打开后是使用浏览器打开的，所有链接都会被当做网页打开，如果想在h5页面内部调整到某个微信小程序页面，则得接入jssdk来实现，可以参考开发文档, [微信公众号接入文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html#63)
+``` js
+<script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js">
+document.getElementById('jumpButton').addEventListener('click', function() {
+  wx.miniProgram.navigateToMiniProgram({
+    appId: '目标小程序的AppID',
+    path: '目标页面的路径?参数=值',
+    extraData: {
+      foo: 'bar'
+    },
+    envVersion: 'release', // 可选值 develop（开发版），trial（体验版），release（正式版）
+    success(res) {
+      // 跳转成功
+    },
+    fail(res) {
+      // 跳转失败
+    }
+  });
+});
+```
+也可以使用标签跳转的sdk接入方式可以参考[sdk文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_Open_Tag.html#21)
+
 
 第三种分享到朋友圈其实就是调用对应生命周期配置即可，唯一值得注意的是，这个分享出去的小程序其实是个类似静态图片的小程序，在朋友圈点击直接进入查看，一旦操作则提示进入原小程序，同样内部的页面，例如relaunch等方法都会失效
 ``` js
