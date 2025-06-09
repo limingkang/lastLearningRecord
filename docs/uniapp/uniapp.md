@@ -155,7 +155,7 @@ document.getElementById('jumpButton').addEventListener('click', function() {
 });
 ```
 也可以使用标签跳转的sdk接入方式可以参考[sdk文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/Wechat_Open_Tag.html#21)
-
+也可以使用云服务，就是认证较多[文档](https://developers.weixin.qq.com/miniprogram/dev/wxcloudservice/wxcloud/guide/staticstorage/jump-miniprogram.html)
 
 第三种分享到朋友圈其实就是调用对应生命周期配置即可，唯一值得注意的是，这个分享出去的小程序其实是个类似静态图片的小程序，在朋友圈点击直接进入查看，一旦操作则提示进入原小程序，同样内部的页面，例如relaunch等方法都会失效
 ``` js
