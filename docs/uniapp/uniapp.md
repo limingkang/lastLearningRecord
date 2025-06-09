@@ -136,7 +136,7 @@ Page({
 ```
 注意这种链接必须使用微信直接扫码，如果想通过h5页面来微信扫码中转到这个链接是不行的，因为h5打开后是使用浏览器打开的，所有链接都会被当做网页打开，如果想在h5页面内部调整到某个微信小程序页面，则得接入jssdk来实现，可以参考开发文档, [微信公众号接入文档](https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html#63)
 ``` js
-// 注意这是指的是h5内嵌在微信小程序webview内部的页面
+// 注意这是指的是h5内嵌在微信小程序webview内部的页面，如果内嵌则可以通过wx.miniProgram访问到小程序的方法,如果不是内嵌，则只能看上面文档支持哪些api调用了
 <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js">
 document.getElementById('jumpButton').addEventListener('click', function() {
   wx.miniProgram.navigateToMiniProgram({
