@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="600" viewBox="0 0 1240 600" role="img" aria-labelledby="title desc">
+  <title id="title">Agent 工具调用执行链路</title>
+  <desc id="desc">展示用户目标进入 Agent，模型选择工具，执行器校验参数和权限，执行工具，回填结果，模型继续决策或输出最终结果。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.a{fill:#eff6ff;stroke:#3b82f6}.b{fill:#ecfdf5;stroke:#10b981}.c{fill:#fef3c7;stroke:#f59e0b}.d{fill:#f5f3ff;stroke:#8b5cf6}.e{fill:#fff7ed;stroke:#f97316}.head{font:700 15px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:13px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}.dash{stroke:#64748b;stroke-width:2;stroke-dasharray:6 6;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1240" height="600"/><text class="title" x="620" y="52" text-anchor="middle">Agent 工具调用执行链路</text>
+  <rect class="box a" x="45" y="205" width="115" height="70"/><text class="head" x="102" y="234" text-anchor="middle">用户目标</text>
+  <rect class="box b" x="200" y="205" width="115" height="70"/><text class="head" x="257" y="228" text-anchor="middle">加载状态</text><text class="small" x="257" y="251" text-anchor="middle">task / context</text>
+  <rect class="box d" x="355" y="205" width="115" height="70"/><text class="head" x="412" y="228" text-anchor="middle">LLM 决策</text><text class="small" x="412" y="251" text-anchor="middle">选工具</text>
+  <rect class="box c" x="510" y="205" width="115" height="70"/><text class="head" x="567" y="228" text-anchor="middle">参数校验</text><text class="small" x="567" y="251" text-anchor="middle">schema</text>
+  <rect class="box c" x="665" y="205" width="115" height="70"/><text class="head" x="722" y="228" text-anchor="middle">权限校验</text><text class="small" x="722" y="251" text-anchor="middle">user / scope</text>
+  <rect class="box e" x="820" y="205" width="115" height="70"/><text class="head" x="877" y="228" text-anchor="middle">执行工具</text><text class="small" x="877" y="251" text-anchor="middle">DB / API</text>
+  <rect class="box b" x="975" y="205" width="115" height="70"/><text class="head" x="1032" y="228" text-anchor="middle">回填结果</text><text class="small" x="1032" y="251" text-anchor="middle">tool message</text>
+  <rect class="box d" x="520" y="405" width="200" height="75"/><text class="head" x="620" y="436" text-anchor="middle">继续决策或最终输出</text><text class="small" x="620" y="459" text-anchor="middle">直到完成 / 失败 / 超限</text>
+  <line class="arrow" x1="160" y1="240" x2="197" y2="240"/><line class="arrow" x1="315" y1="240" x2="352" y2="240"/><line class="arrow" x1="470" y1="240" x2="507" y2="240"/><line class="arrow" x1="625" y1="240" x2="662" y2="240"/><line class="arrow" x1="780" y1="240" x2="817" y2="240"/><line class="arrow" x1="935" y1="240" x2="972" y2="240"/>
+  <path class="dash" d="M1032 275 C920 360, 740 390, 670 405"/><path class="dash" d="M570 405 C420 360, 380 300, 412 275"/>
+  <rect class="box" x="260" y="520" width="720" height="55" fill="#fff" stroke="#cbd5e1"/><text class="small" x="620" y="553" text-anchor="middle">关键：模型负责选择和参数，程序负责校验、权限、执行、记录和停止条件。</text>
+</svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="620" viewBox="0 0 1240 620" role="img" aria-labelledby="title desc">
+  <title id="title">电商选品 Agent 流程</title>
+  <desc id="desc">展示电商选品 Agent 从商品录入、竞品查询、利润计算、卖点分析、标题生成、风险评估到报告保存的流程。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.data{fill:#eff6ff;stroke:#3b82f6}.tool{fill:#ecfdf5;stroke:#10b981}.llm{fill:#f5f3ff;stroke:#8b5cf6}.risk{fill:#fff7ed;stroke:#f97316}.head{font:700 15px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:13px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1240" height="620"/><text class="title" x="620" y="52" text-anchor="middle">实践项目：电商选品 Agent</text>
+  <rect class="box data" x="45" y="210" width="120" height="70"/><text class="head" x="105" y="238" text-anchor="middle">商品录入</text><text class="small" x="105" y="261" text-anchor="middle">链接/信息</text>
+  <rect class="box tool" x="205" y="210" width="120" height="70"/><text class="head" x="265" y="238" text-anchor="middle">竞品查询</text><text class="small" x="265" y="261" text-anchor="middle">mock/API</text>
+  <rect class="box tool" x="365" y="210" width="120" height="70"/><text class="head" x="425" y="238" text-anchor="middle">利润计算</text><text class="small" x="425" y="261" text-anchor="middle">确定性工具</text>
+  <rect class="box llm" x="525" y="210" width="120" height="70"/><text class="head" x="585" y="238" text-anchor="middle">卖点分析</text><text class="small" x="585" y="261" text-anchor="middle">LLM</text>
+  <rect class="box llm" x="685" y="210" width="120" height="70"/><text class="head" x="745" y="238" text-anchor="middle">标题生成</text><text class="small" x="745" y="261" text-anchor="middle">结构化</text>
+  <rect class="box risk" x="845" y="210" width="120" height="70"/><text class="head" x="905" y="238" text-anchor="middle">风险评分</text><text class="small" x="905" y="261" text-anchor="middle">规则+LLM</text>
+  <rect class="box data" x="1005" y="210" width="150" height="70"/><text class="head" x="1080" y="238" text-anchor="middle">保存报告</text><text class="small" x="1080" y="261" text-anchor="middle">Markdown/PDF</text>
+  <line class="arrow" x1="165" y1="245" x2="202" y2="245"/><line class="arrow" x1="325" y1="245" x2="362" y2="245"/><line class="arrow" x1="485" y1="245" x2="522" y2="245"/><line class="arrow" x1="645" y1="245" x2="682" y2="245"/><line class="arrow" x1="805" y1="245" x2="842" y2="245"/><line class="arrow" x1="965" y1="245" x2="1002" y2="245"/>
+  <rect class="box" x="210" y="390" width="820" height="95" fill="#fff" stroke="#cbd5e1"/><text class="head" x="620" y="425" text-anchor="middle">为什么适合用 Workflow + Agent？</text><text class="small" x="620" y="452" text-anchor="middle">步骤整体固定，但每一步可能需要工具、规则、LLM 分析和失败恢复；比完全自由 Agent 更稳定。</text>
+</svg>

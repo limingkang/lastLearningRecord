@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.shell{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.side{fill:#f1f5f9;stroke:#cbd5e1}.chat{fill:#ffffff;stroke:#cbd5e1}.panel{fill:#f8fafc;stroke:#cbd5e1}.bubbleUser{fill:#dbeafe;stroke:#60a5fa;rx:14}.bubbleAi{fill:#f0fdf4;stroke:#86efac;rx:14}.input{fill:#fff7ed;stroke:#fdba74;rx:14}.head{font:700 18px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 14px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 12px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.btn{fill:#e2e8f0;rx:10}
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="60" y="58">AI 聊天工作台布局</text>
+  <text class="sub" x="60" y="88">AI 产品的首页应该直接进入可用工作台，而不是只有营销式说明页</text>
+
+  <rect class="shell" x="70" y="124" width="980" height="526"/>
+  <rect class="side" x="70" y="124" width="218" height="526" rx="18"/>
+  <text class="head" x="100" y="168">会话列表</text>
+  <rect class="btn" x="100" y="198" width="158" height="34"/>
+  <text class="small" x="122" y="220">+ 新建会话</text>
+  <text class="txt" x="100" y="278">RAG 问答记录</text>
+  <text class="txt" x="100" y="316">选品 Agent 报告</text>
+  <text class="txt" x="100" y="354">MCP 学习助手</text>
+
+  <rect class="chat" x="288" y="124" width="520" height="526"/>
+  <text class="head" x="330" y="168">消息区</text>
+  <rect class="bubbleUser" x="498" y="204" width="250" height="58"/>
+  <text class="txt" x="526" y="238">帮我总结这份文档</text>
+  <rect class="bubbleAi" x="330" y="302" width="370" height="92"/>
+  <text class="txt" x="358" y="338">正在生成回答...</text>
+  <text class="small" x="358" y="366">可显示流式文本、引用、工具过程</text>
+  <rect class="input" x="330" y="548" width="420" height="62"/>
+  <text class="txt" x="358" y="584">输入问题，支持粘贴、上传、快捷指令</text>
+
+  <rect class="panel" x="808" y="124" width="242" height="526" rx="18"/>
+  <text class="head" x="838" y="168">右侧上下文</text>
+  <text class="txt" x="838" y="214">引用来源</text>
+  <text class="txt" x="838" y="252">工具调用</text>
+  <text class="txt" x="838" y="290">文件状态</text>
+  <text class="txt" x="838" y="328">任务进度</text>
+  <text class="txt" x="838" y="366">成本与日志</text>
+  <rect class="btn" x="838" y="554" width="158" height="34"/>
+  <text class="small" x="866" y="576">展开详情</text>
+</svg>

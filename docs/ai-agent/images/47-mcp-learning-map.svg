@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="640" viewBox="0 0 1100 640">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.pill{fill:#ecfeff;stroke:#06b6d4;stroke-width:1.5;rx:16}.pill2{fill:#fef9c3;stroke:#eab308;stroke-width:1.5;rx:16}.pill3{fill:#f0fdf4;stroke:#22c55e;stroke-width:1.5;rx:16}.line{stroke:#94a3b8;stroke-width:3;fill:none;marker-end:url(#arrow)}.center{fill:#1d4ed8;rx:24}.centerText{font:700 24px Arial,"Microsoft YaHei",sans-serif;fill:#fff}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1100" height="640"/>
+  <text class="title" x="60" y="62">第六阶段 MCP 学习地图</text>
+  <text class="sub" x="60" y="92">目标：把 Agent 能力标准化地接入本地文件、数据库、业务 API 和可复用工作流</text>
+
+  <rect class="center" x="406" y="238" width="288" height="128"/>
+  <text class="centerText" x="482" y="290">MCP Server</text>
+  <text class="centerText" x="452" y="324">能力封装与安全边界</text>
+
+  <rect class="card" x="60" y="148" width="250" height="142"/>
+  <text class="head" x="88" y="188">1. 协议角色</text>
+  <text class="txt" x="88" y="220">Host / Client / Server</text>
+  <text class="txt" x="88" y="248">谁发起连接，谁暴露能力</text>
+
+  <rect class="card" x="60" y="356" width="250" height="142"/>
+  <text class="head" x="88" y="396">2. 能力类型</text>
+  <text class="txt" x="88" y="428">Tools：可执行动作</text>
+  <text class="txt" x="88" y="456">Resources：可读取上下文</text>
+  <text class="txt" x="88" y="484">Prompts：可复用模板</text>
+
+  <rect class="card" x="790" y="148" width="250" height="142"/>
+  <text class="head" x="818" y="188">3. 传输方式</text>
+  <text class="txt" x="818" y="220">stdio：本地进程通信</text>
+  <text class="txt" x="818" y="248">HTTP：远程服务通信</text>
+
+  <rect class="card" x="790" y="356" width="250" height="142"/>
+  <text class="head" x="818" y="396">4. 工程落地</text>
+  <text class="txt" x="818" y="428">Node.js / TypeScript</text>
+  <text class="txt" x="818" y="456">Schema、权限、日志、测试</text>
+
+  <path class="line" d="M310 220 C360 230 370 265 406 280"/>
+  <path class="line" d="M310 430 C360 420 370 352 406 330"/>
+  <path class="line" d="M694 280 C730 265 742 230 790 220"/>
+  <path class="line" d="M694 330 C730 352 742 420 790 430"/>
+
+  <rect class="pill" x="384" y="478" width="332" height="46"/>
+  <text class="txt" x="424" y="507">最终项目：MCP 本地学习助手</text>
+  <rect class="pill2" x="300" y="548" width="230" height="42"/>
+  <text class="small" x="340" y="574">搜索 Markdown 笔记</text>
+  <rect class="pill3" x="570" y="548" width="230" height="42"/>
+  <text class="small" x="620" y="574">生成学习日报</text>
+</svg>

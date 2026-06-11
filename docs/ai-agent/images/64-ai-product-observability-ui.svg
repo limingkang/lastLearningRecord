@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.panel{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.metric{fill:#eff6ff;stroke:#2563eb;rx:14}.log{fill:#f8fafc;stroke:#cbd5e1;rx:12}.warn{fill:#fff7ed;stroke:#f97316;rx:12}.head{font:700 19px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 14px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 12px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.num{font:700 26px Arial,"Microsoft YaHei",sans-serif;fill:#1d4ed8}
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="60" y="58">AI 产品观测面板</text>
+  <text class="sub" x="60" y="88">作品集项目也需要展示调用日志、成本、错误和反馈，让面试官看到工程化意识</text>
+
+  <rect class="panel" x="80" y="132" width="960" height="498"/>
+  <rect class="metric" x="120" y="178" width="200" height="104"/>
+  <text class="small" x="152" y="214">今日调用</text>
+  <text class="num" x="152" y="252">128</text>
+
+  <rect class="metric" x="352" y="178" width="200" height="104"/>
+  <text class="small" x="384" y="214">平均耗时</text>
+  <text class="num" x="384" y="252">3.2s</text>
+
+  <rect class="metric" x="584" y="178" width="200" height="104"/>
+  <text class="small" x="616" y="214">估算成本</text>
+  <text class="num" x="616" y="252">$1.86</text>
+
+  <rect class="metric" x="816" y="178" width="184" height="104"/>
+  <text class="small" x="848" y="214">失败率</text>
+  <text class="num" x="848" y="252">2.3%</text>
+
+  <rect class="log" x="120" y="340" width="570" height="210"/>
+  <text class="head" x="154" y="380">调用日志</text>
+  <text class="txt" x="154" y="420">trace_001  chat.completion  success  2840 tokens</text>
+  <text class="txt" x="154" y="456">trace_002  rag.query        success  topK=5</text>
+  <text class="txt" x="154" y="492">trace_003  agent.tool       error    TIMEOUT</text>
+
+  <rect class="warn" x="730" y="340" width="270" height="210"/>
+  <text class="head" x="764" y="380">用户反馈</text>
+  <text class="txt" x="764" y="420">回答有帮助：86%</text>
+  <text class="txt" x="764" y="456">引用不准确：4 条</text>
+  <text class="txt" x="764" y="492">待回归坏例：7 条</text>
+</svg>

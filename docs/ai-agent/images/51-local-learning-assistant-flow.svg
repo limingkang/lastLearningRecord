@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.q{fill:#eff6ff;stroke:#2563eb}.tool{fill:#f0fdf4;stroke:#16a34a}.out{fill:#fff7ed;stroke:#f97316}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="58" y="58">实战项目：MCP 本地学习助手工作流</text>
+  <text class="sub" x="58" y="88">把自己的学习资料、待办和复盘流程封装成 Agent 可以安全调用的工具生态</text>
+
+  <rect class="box q" x="70" y="156" width="244" height="112"/>
+  <text class="head" x="106" y="198">用户提问</text>
+  <text class="txt" x="106" y="232">“帮我整理今天 RAG</text>
+  <text class="txt" x="106" y="258">学习内容和待办”</text>
+
+  <rect class="box" x="412" y="132" width="296" height="160"/>
+  <text class="head" x="470" y="174">Agent 规划</text>
+  <text class="txt" x="454" y="210">先搜笔记，再读详情</text>
+  <text class="txt" x="454" y="240">再查任务，最后生成日报</text>
+
+  <rect class="box tool" x="806" y="96" width="246" height="86"/>
+  <text class="head" x="856" y="130">search_notes</text>
+  <text class="small" x="846" y="158">按关键词搜索本地 Markdown</text>
+  <rect class="box tool" x="806" y="212" width="246" height="86"/>
+  <text class="head" x="874" y="246">read_note</text>
+  <text class="small" x="850" y="274">读取允许目录内的笔记</text>
+  <rect class="box tool" x="806" y="328" width="246" height="86"/>
+  <text class="head" x="852" y="362">create_todo</text>
+  <text class="small" x="842" y="390">写入待办并返回记录 ID</text>
+  <rect class="box tool" x="806" y="444" width="246" height="86"/>
+  <text class="head" x="830" y="478">daily_report_prompt</text>
+  <text class="small" x="846" y="506">使用日报模板组织输出</text>
+
+  <rect class="box out" x="410" y="420" width="300" height="150"/>
+  <text class="head" x="470" y="464">最终结果</text>
+  <text class="txt" x="450" y="500">学习摘要、知识盲点</text>
+  <text class="txt" x="450" y="530">下一步任务、明日计划</text>
+
+  <path class="line" d="M314 212 L412 212"/>
+  <path class="line" d="M708 210 C750 170 770 140 806 140"/>
+  <path class="line" d="M708 226 C752 234 770 255 806 255"/>
+  <path class="line" d="M708 242 C752 300 770 360 806 370"/>
+  <path class="line" d="M806 488 C760 520 736 528 710 520"/>
+  <path class="line" d="M560 292 L560 420"/>
+
+  <rect class="box" x="104" y="600" width="912" height="56"/>
+  <text class="txt" x="146" y="634">交付物不是“会调用工具”这么简单，而是能围绕真实学习流程形成稳定的工具、资源、提示词组合。</text>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="680" viewBox="0 0 1120 680">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.host{fill:#eff6ff;stroke:#2563eb}.server{fill:#f0fdf4;stroke:#16a34a}.data{fill:#fff7ed;stroke:#f97316}.head{font:700 21px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}.line2{stroke:#2563eb;stroke-width:3;stroke-dasharray:8 8;fill:none;marker-end:url(#arrowBlue)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#2563eb"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="680"/>
+  <text class="title" x="60" y="58">MCP 架构：AI 应用如何连接外部系统</text>
+  <text class="sub" x="60" y="88">MCP 把“外部能力”统一成标准协议，客户端不用为每个工具单独适配一套私有接口</text>
+
+  <rect class="box host" x="62" y="156" width="260" height="320"/>
+  <text class="head" x="104" y="202">Host 应用</text>
+  <text class="txt" x="104" y="238">IDE、桌面聊天应用</text>
+  <text class="txt" x="104" y="266">Agent 平台、内部工作台</text>
+  <rect class="box" x="102" y="320" width="180" height="88"/>
+  <text class="head" x="138" y="356">MCP Client</text>
+  <text class="small" x="124" y="384">维护连接与协议消息</text>
+
+  <rect class="box server" x="430" y="156" width="270" height="320"/>
+  <text class="head" x="484" y="202">MCP Server</text>
+  <text class="txt" x="474" y="238">暴露标准能力</text>
+  <text class="txt" x="474" y="272">Tools / Resources / Prompts</text>
+  <rect class="box" x="472" y="318" width="186" height="92"/>
+  <text class="txt" x="502" y="354">鉴权、参数校验</text>
+  <text class="txt" x="502" y="382">权限、日志、限流</text>
+
+  <rect class="box data" x="802" y="110" width="250" height="118"/>
+  <text class="head" x="858" y="150">本地文件</text>
+  <text class="txt" x="842" y="184">Markdown、PDF、配置</text>
+  <rect class="box data" x="802" y="280" width="250" height="118"/>
+  <text class="head" x="872" y="320">数据库</text>
+  <text class="txt" x="846" y="354">SQLite、Postgres、日志</text>
+  <rect class="box data" x="802" y="450" width="250" height="118"/>
+  <text class="head" x="872" y="490">业务 API</text>
+  <text class="txt" x="844" y="524">CRM、工单、知识库</text>
+
+  <path class="line2" d="M322 316 L430 316"/>
+  <text class="small" x="348" y="296">stdio / HTTP</text>
+  <path class="line" d="M700 214 L802 170"/>
+  <path class="line" d="M700 316 L802 340"/>
+  <path class="line" d="M700 410 L802 510"/>
+
+  <rect class="box" x="168" y="538" width="800" height="70"/>
+  <text class="txt" x="206" y="580">核心思想：模型不直接乱碰系统，必须通过 MCP Server 定义好的能力、参数和权限边界访问外部世界。</text>
+</svg>

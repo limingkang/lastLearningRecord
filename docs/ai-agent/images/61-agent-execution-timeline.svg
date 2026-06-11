@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.plan{fill:#eff6ff;stroke:#2563eb}.tool{fill:#f0fdf4;stroke:#16a34a}.wait{fill:#fff7ed;stroke:#f97316}.done{fill:#ecfdf5;stroke:#059669}.head{font:700 19px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 14px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 12px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none}.dot{fill:#2563eb}.btn{fill:#e2e8f0;rx:10}
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="60" y="58">Agent 执行过程可视化</text>
+  <text class="sub" x="60" y="88">Agent 不是黑箱：用户需要看到计划、工具、等待确认、失败和最终结果</text>
+
+  <line class="line" x1="190" y1="170" x2="190" y2="568"/>
+  <circle class="dot" cx="190" cy="196" r="10"/>
+  <circle class="dot" cx="190" cy="302" r="10"/>
+  <circle class="dot" cx="190" cy="408" r="10"/>
+  <circle class="dot" cx="190" cy="514" r="10"/>
+
+  <rect class="card plan" x="240" y="146" width="720" height="82"/>
+  <text class="head" x="278" y="182">步骤 1：制定计划</text>
+  <text class="txt" x="278" y="208">分析用户目标，决定需要搜索商品、计算利润、生成报告</text>
+
+  <rect class="card tool" x="240" y="252" width="720" height="82"/>
+  <text class="head" x="278" y="288">步骤 2：调用工具 search_products</text>
+  <text class="txt" x="278" y="314">参数摘要：keyword=保温杯，limit=10；结果：命中 8 条</text>
+
+  <rect class="card wait" x="240" y="358" width="720" height="82"/>
+  <text class="head" x="278" y="394">步骤 3：等待人工确认</text>
+  <text class="txt" x="278" y="420">即将生成上架建议，需要用户确认是否继续</text>
+  <rect class="btn" x="792" y="386" width="92" height="30"/>
+  <text class="small" x="818" y="406">确认</text>
+
+  <rect class="card done" x="240" y="464" width="720" height="82"/>
+  <text class="head" x="278" y="500">步骤 4：生成最终报告</text>
+  <text class="txt" x="278" y="526">输出利润分析、标题建议、风险点和下一步待办</text>
+
+  <rect class="card" x="240" y="598" width="720" height="48"/>
+  <text class="small" x="318" y="628">展示原则：默认展示摘要，点击后展开工具参数、原始结果、错误堆栈和 traceId。</text>
+</svg>

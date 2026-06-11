@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="660" viewBox="0 0 1220 660" role="img" aria-labelledby="title desc">
+  <title id="title">Agent 观测和评估闭环</title>
+  <desc id="desc">展示 Agent 任务从 trace、工具调用日志、成本、成功率、人工确认、bad case 到评估优化的闭环。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.a{fill:#eff6ff;stroke:#3b82f6}.b{fill:#ecfdf5;stroke:#10b981}.c{fill:#fef3c7;stroke:#f59e0b}.d{fill:#f5f3ff;stroke:#8b5cf6}.e{fill:#fff7ed;stroke:#f97316}.head{font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1220" height="660"/><text class="title" x="610" y="52" text-anchor="middle">Agent 观测和评估闭环</text>
+  <rect class="box a" x="100" y="155" width="170" height="90"/><text class="head" x="185" y="190" text-anchor="middle">Trace</text><text class="small" x="185" y="215" text-anchor="middle">完整任务链路</text>
+  <rect class="box b" x="350" y="155" width="170" height="90"/><text class="head" x="435" y="190" text-anchor="middle">Tool Logs</text><text class="small" x="435" y="215" text-anchor="middle">输入 / 输出 / 错误</text>
+  <rect class="box c" x="600" y="155" width="170" height="90"/><text class="head" x="685" y="190" text-anchor="middle">Metrics</text><text class="small" x="685" y="215" text-anchor="middle">成功率 / 成本 / 耗时</text>
+  <rect class="box d" x="850" y="155" width="170" height="90"/><text class="head" x="935" y="190" text-anchor="middle">Bad Case</text><text class="small" x="935" y="215" text-anchor="middle">失败分类</text>
+  <rect class="box e" x="470" y="395" width="280" height="95"/><text class="head" x="610" y="430" text-anchor="middle">优化</text><text class="small" x="610" y="456" text-anchor="middle">工具描述、权限、流程、prompt、重试策略</text>
+  <line class="arrow" x1="270" y1="200" x2="347" y2="200"/><line class="arrow" x1="520" y1="200" x2="597" y2="200"/><line class="arrow" x1="770" y1="200" x2="847" y2="200"/><path class="arrow" d="M935 245 C870 350, 760 405, 750 430"/><path class="arrow" d="M470 430 C300 410, 190 320, 185 248"/>
+  <rect class="box" x="230" y="555" width="760" height="60" fill="#fff" stroke="#cbd5e1"/><text class="small" x="610" y="591" text-anchor="middle">Agent 评估不只看答案，还要看是否选对工具、参数是否正确、是否越权、是否按时停止。</text>
+</svg>

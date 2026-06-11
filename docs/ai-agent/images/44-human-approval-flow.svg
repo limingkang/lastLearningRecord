@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="620" viewBox="0 0 1180 620" role="img" aria-labelledby="title desc">
+  <title id="title">人工确认流程</title>
+  <desc id="desc">展示 Agent 请求执行高风险工具时，后端暂停任务、创建审批记录、前端展示确认，用户批准后继续执行，拒绝则终止或改走安全分支。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.agent{fill:#f5f3ff;stroke:#8b5cf6}.warn{fill:#fff7ed;stroke:#f97316}.ok{fill:#ecfdf5;stroke:#10b981}.bad{fill:#fef2f2;stroke:#ef4444}.head{font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1180" height="620"/><text class="title" x="590" y="52" text-anchor="middle">Human-in-the-loop：高风险工具必须人工确认</text>
+  <rect class="box agent" x="80" y="190" width="160" height="85"/><text class="head" x="160" y="223" text-anchor="middle">Agent 决策</text><text class="small" x="160" y="248" text-anchor="middle">需要写操作</text>
+  <rect class="box warn" x="315" y="190" width="170" height="85"/><text class="head" x="400" y="223" text-anchor="middle">风险判断</text><text class="small" x="400" y="248" text-anchor="middle">需人工确认</text>
+  <rect class="box warn" x="560" y="190" width="170" height="85"/><text class="head" x="645" y="223" text-anchor="middle">暂停任务</text><text class="small" x="645" y="248" text-anchor="middle">创建 approval</text>
+  <rect class="box warn" x="805" y="190" width="170" height="85"/><text class="head" x="890" y="223" text-anchor="middle">前端确认</text><text class="small" x="890" y="248" text-anchor="middle">展示影响和参数</text>
+  <rect class="box ok" x="665" y="390" width="170" height="85"/><text class="head" x="750" y="423" text-anchor="middle">批准</text><text class="small" x="750" y="448" text-anchor="middle">继续执行工具</text>
+  <rect class="box bad" x="900" y="390" width="170" height="85"/><text class="head" x="985" y="423" text-anchor="middle">拒绝</text><text class="small" x="985" y="448" text-anchor="middle">终止或改安全分支</text>
+  <line class="arrow" x1="240" y1="232" x2="312" y2="232"/><line class="arrow" x1="485" y1="232" x2="557" y2="232"/><line class="arrow" x1="730" y1="232" x2="802" y2="232"/><path class="arrow" d="M890 275 C850 330, 800 360, 750 387"/><path class="arrow" d="M935 275 C980 330, 995 360, 985 387"/>
+  <rect class="box" x="220" y="530" width="740" height="55" fill="#fff" stroke="#cbd5e1"/><text class="small" x="590" y="563" text-anchor="middle">确认记录要保存：谁确认、确认了什么参数、何时确认、最终执行结果。</text>
+</svg>

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="760" viewBox="0 0 1220 760" role="img" aria-labelledby="title desc">
+  <title id="title">第五阶段 Agent 工具调用学习地图</title>
+  <desc id="desc">展示 Agent 工具调用和可靠工作流需要学习的工具设计、执行器、状态管理、人工确认、失败恢复、日志审计和业务实践。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.sub{font:15px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#64748b}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:14}.root{fill:#dbeafe;stroke:#2563eb}.a{fill:#eff6ff;stroke:#3b82f6}.b{fill:#ecfdf5;stroke:#10b981}.c{fill:#fef3c7;stroke:#f59e0b}.d{fill:#f5f3ff;stroke:#8b5cf6}.e{fill:#fff7ed;stroke:#f97316}.f{fill:#fce7f3;stroke:#ec4899}.head{font:700 18px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1220" height="760"/>
+  <text class="title" x="610" y="50" text-anchor="middle">第五阶段学习地图：Agent 工具调用和可靠工作流</text>
+  <text class="sub" x="610" y="78" text-anchor="middle">目标是让 AI 在安全边界内调用工具完成任务，而不是只会聊天</text>
+  <rect class="card root" x="470" y="115" width="280" height="78"/><text class="head" x="610" y="148" text-anchor="middle">业务型 Agent</text><text class="small" x="610" y="172" text-anchor="middle">工具 + 状态 + 工作流 + 审计</text>
+  <rect class="card a" x="60" y="285" width="180" height="125"/><text class="head" x="150" y="318" text-anchor="middle">工具设计</text><text class="small" x="105" y="348">name / description</text><text class="small" x="105" y="374">input / output schema</text><text class="small" x="105" y="400">权限要求</text>
+  <rect class="card b" x="280" y="285" width="180" height="125"/><text class="head" x="370" y="318" text-anchor="middle">执行器</text><text class="small" x="325" y="348">参数校验</text><text class="small" x="325" y="374">工具执行</text><text class="small" x="325" y="400">结果回填</text>
+  <rect class="card c" x="500" y="285" width="180" height="125"/><text class="head" x="590" y="318" text-anchor="middle">状态管理</text><text class="small" x="545" y="348">task / step</text><text class="small" x="545" y="374">中间结果</text><text class="small" x="545" y="400">失败原因</text>
+  <rect class="card d" x="720" y="285" width="180" height="125"/><text class="head" x="810" y="318" text-anchor="middle">Workflow</text><text class="small" x="765" y="348">固定流程</text><text class="small" x="765" y="374">局部智能</text><text class="small" x="765" y="400">可恢复</text>
+  <rect class="card e" x="940" y="285" width="180" height="125"/><text class="head" x="1030" y="318" text-anchor="middle">人工确认</text><text class="small" x="985" y="348">高风险操作</text><text class="small" x="985" y="374">确认记录</text><text class="small" x="985" y="400">只读模式</text>
+  <rect class="card f" x="260" y="535" width="300" height="105"/><text class="head" x="410" y="568" text-anchor="middle">可靠性</text><text class="small" x="305" y="598">幂等、重试、超时、回滚、最大步骤数</text>
+  <rect class="card f" x="660" y="535" width="300" height="105"/><text class="head" x="810" y="568" text-anchor="middle">观测和评估</text><text class="small" x="705" y="598">tool_calls、trace、成本、成功率、bad case</text>
+  <line class="arrow" x1="520" y1="193" x2="150" y2="282"/><line class="arrow" x1="565" y1="193" x2="370" y2="282"/><line class="arrow" x1="610" y1="193" x2="590" y2="282"/><line class="arrow" x1="655" y1="193" x2="810" y2="282"/><line class="arrow" x1="700" y1="193" x2="1030" y2="282"/><line class="arrow" x1="370" y1="410" x2="410" y2="532"/><line class="arrow" x1="810" y1="410" x2="810" y2="532"/>
+</svg>

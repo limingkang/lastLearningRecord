@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.uri{fill:#eff6ff;stroke:#2563eb}.data{fill:#f0fdf4;stroke:#16a34a}.ctx{fill:#fff7ed;stroke:#f97316}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.code{font:400 14px Consolas,"Microsoft YaHei",monospace;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="58" y="58">MCP Resource 设计：把资料变成可控上下文</text>
+  <text class="sub" x="58" y="88">Resources 适合暴露“可读取的信息”，重点是 URI 命名、权限控制和上下文大小</text>
+
+  <rect class="box uri" x="76" y="146" width="300" height="380"/>
+  <text class="head" x="118" y="188">Resource URI</text>
+  <text class="code" x="116" y="236">note://rag/chunking</text>
+  <text class="code" x="116" y="270">note://node/stream</text>
+  <text class="code" x="116" y="304">stats://learning/week</text>
+  <text class="code" x="116" y="338">config://study/profile</text>
+  <text class="small" x="116" y="410">URI 要表达资源类型和身份，避免直接暴露</text>
+  <text class="small" x="116" y="436">真实系统路径。</text>
+
+  <rect class="box data" x="416" y="146" width="300" height="380"/>
+  <text class="head" x="458" y="188">Resource 内容</text>
+  <text class="txt" x="456" y="236">标题、元数据、正文片段</text>
+  <text class="txt" x="456" y="270">更新时间、标签、来源</text>
+  <text class="txt" x="456" y="304">MIME type / text content</text>
+  <text class="txt" x="456" y="338">分页或片段化读取</text>
+  <text class="small" x="456" y="410">不要把所有资料一次性塞进上下文，先</text>
+  <text class="small" x="456" y="436">列出目录，再按需读取。</text>
+
+  <rect class="box ctx" x="756" y="146" width="300" height="380"/>
+  <text class="head" x="798" y="188">给模型的上下文</text>
+  <text class="txt" x="796" y="236">只包含当前任务需要的信息</text>
+  <text class="txt" x="796" y="270">保留出处，方便追溯</text>
+  <text class="txt" x="796" y="304">过滤敏感内容</text>
+  <text class="txt" x="796" y="338">控制 token 成本</text>
+  <text class="small" x="796" y="410">资源不是越多越好，关键是“可解释、</text>
+  <text class="small" x="796" y="436">可追溯、可控制”。</text>
+
+  <path class="line" d="M376 336 L416 336"/>
+  <path class="line" d="M716 336 L756 336"/>
+  <rect class="box" x="160" y="578" width="800" height="54"/>
+  <text class="txt" x="222" y="612">一句话：Tool 是动作接口，Resource 是资料接口；资料应该被选择、裁剪、标注来源后再进入上下文。</text>
+</svg>

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="660" viewBox="0 0 1120 660">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.tool{fill:#eff6ff;stroke:#2563eb}.res{fill:#f0fdf4;stroke:#16a34a}.prompt{fill:#fff7ed;stroke:#f97316}.head{font:700 24px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 16px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 14px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.tag{font:700 13px Arial,"Microsoft YaHei",sans-serif;fill:#fff}.tagbox{rx:12}.line{stroke:#94a3b8;stroke-width:2}
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="660"/>
+  <text class="title" x="58" y="58">Tools、Resources、Prompts 的区别</text>
+  <text class="sub" x="58" y="88">MCP Server 暴露的不是一团“接口”，而是三类语义明确的能力</text>
+
+  <rect class="card tool" x="58" y="142" width="318" height="390"/>
+  <rect class="tagbox" x="90" y="174" width="86" height="28" fill="#2563eb"/>
+  <text class="tag" x="112" y="193">Tools</text>
+  <text class="head" x="90" y="240">可执行动作</text>
+  <line class="line" x1="90" y1="264" x2="342" y2="264"/>
+  <text class="txt" x="90" y="306">由模型在需要时调用</text>
+  <text class="txt" x="90" y="340">通常有输入参数和输出结果</text>
+  <text class="txt" x="90" y="374">可能产生副作用</text>
+  <text class="small" x="90" y="426">例子：</text>
+  <text class="small" x="90" y="456">search_notes(query)</text>
+  <text class="small" x="90" y="482">create_todo(title, dueDate)</text>
+
+  <rect class="card res" x="402" y="142" width="318" height="390"/>
+  <rect class="tagbox" x="434" y="174" width="112" height="28" fill="#16a34a"/>
+  <text class="tag" x="456" y="193">Resources</text>
+  <text class="head" x="434" y="240">可读取上下文</text>
+  <line class="line" x1="434" y1="264" x2="686" y2="264"/>
+  <text class="txt" x="434" y="306">由应用或用户选择提供给模型</text>
+  <text class="txt" x="434" y="340">适合文件、记录、配置、文档</text>
+  <text class="txt" x="434" y="374">默认应尽量只读</text>
+  <text class="small" x="434" y="426">例子：</text>
+  <text class="small" x="434" y="456">note://2026/agent-rag</text>
+  <text class="small" x="434" y="482">stats://learning/week</text>
+
+  <rect class="card prompt" x="746" y="142" width="318" height="390"/>
+  <rect class="tagbox" x="778" y="174" width="102" height="28" fill="#f97316"/>
+  <text class="tag" x="800" y="193">Prompts</text>
+  <text class="head" x="778" y="240">可复用模板</text>
+  <line class="line" x1="778" y1="264" x2="1030" y2="264"/>
+  <text class="txt" x="778" y="306">把常用任务封装成模板</text>
+  <text class="txt" x="778" y="340">可接收变量生成消息结构</text>
+  <text class="txt" x="778" y="374">适合固定工作流</text>
+  <text class="small" x="778" y="426">例子：</text>
+  <text class="small" x="778" y="456">daily_report(date)</text>
+  <text class="small" x="778" y="482">review_note(topic)</text>
+
+  <rect class="card" x="128" y="566" width="864" height="52"/>
+  <text class="txt" x="184" y="599">一句话记忆：Tools 让模型“做事”，Resources 让模型“看资料”，Prompts 让用户“复用套路”。</text>
+</svg>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.step{fill:#eff6ff;stroke:#2563eb}.warn{fill:#fff7ed;stroke:#f97316}.ok{fill:#f0fdf4;stroke:#16a34a}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="58" y="58">MCP 调试与评估闭环</text>
+  <text class="sub" x="58" y="88">MCP 项目是否靠谱，取决于你能否复现问题、定位工具调用、验证权限和持续改进</text>
+
+  <rect class="box step" x="78" y="156" width="210" height="126"/>
+  <text class="head" x="126" y="198">1. 记录调用</text>
+  <text class="txt" x="112" y="232">toolName、args</text>
+  <text class="txt" x="112" y="258">latency、traceId</text>
+
+  <rect class="box step" x="356" y="156" width="210" height="126"/>
+  <text class="head" x="404" y="198">2. 复现问题</text>
+  <text class="txt" x="392" y="232">保存输入输出</text>
+  <text class="txt" x="392" y="258">固定测试数据</text>
+
+  <rect class="box warn" x="634" y="156" width="210" height="126"/>
+  <text class="head" x="682" y="198">3. 分类坏例</text>
+  <text class="txt" x="670" y="232">选错工具</text>
+  <text class="txt" x="670" y="258">越权、超时、误写入</text>
+
+  <rect class="box ok" x="912" y="156" width="146" height="126"/>
+  <text class="head" x="944" y="198">4. 修复</text>
+  <text class="txt" x="940" y="232">改描述</text>
+  <text class="txt" x="940" y="258">改权限</text>
+
+  <path class="line" d="M288 219 L356 219"/>
+  <path class="line" d="M566 219 L634 219"/>
+  <path class="line" d="M844 219 L912 219"/>
+
+  <rect class="box" x="96" y="382" width="928" height="178"/>
+  <text class="head" x="138" y="428">建议保留的评估用例</text>
+  <text class="txt" x="138" y="468">正常任务：搜索笔记、读取笔记、生成日报</text>
+  <text class="txt" x="138" y="500">边界任务：空关键词、超长关键词、不存在文件、结果过多</text>
+  <text class="txt" x="138" y="532">安全任务：读取上级目录、写入敏感路径、SQL 注入、提示注入文本</text>
+
+  <rect class="box" x="160" y="608" width="800" height="50"/>
+  <text class="small" x="212" y="638">结论：没有日志和坏例集的 MCP Server，很难从 demo 走向可维护的工程。</text>
+</svg>

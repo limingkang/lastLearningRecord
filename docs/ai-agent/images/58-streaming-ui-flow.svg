@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.client{fill:#eff6ff;stroke:#2563eb}.server{fill:#f0fdf4;stroke:#16a34a}.model{fill:#fff7ed;stroke:#f97316}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}.dash{stroke:#2563eb;stroke-width:3;stroke-dasharray:8 8;fill:none;marker-end:url(#arrowBlue)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+    <marker id="arrowBlue" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#2563eb"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="60" y="58">流式输出 UI 流程</text>
+  <text class="sub" x="60" y="88">AI 产品的“生成中”不是一个 loading，而是一条可中断、可恢复、可观察的数据流</text>
+
+  <rect class="box client" x="70" y="150" width="250" height="360"/>
+  <text class="head" x="120" y="194">Vue 前端</text>
+  <text class="txt" x="112" y="240">1. 创建消息占位</text>
+  <text class="txt" x="112" y="276">2. 发起 stream 请求</text>
+  <text class="txt" x="112" y="312">3. 逐块追加文本</text>
+  <text class="txt" x="112" y="348">4. 自动滚动</text>
+  <text class="txt" x="112" y="384">5. 支持停止生成</text>
+  <text class="txt" x="112" y="420">6. 收尾渲染引用</text>
+
+  <rect class="box server" x="436" y="150" width="250" height="360"/>
+  <text class="head" x="482" y="194">NestJS API</text>
+  <text class="txt" x="478" y="240">鉴权与会话</text>
+  <text class="txt" x="478" y="276">保存用户消息</text>
+  <text class="txt" x="478" y="312">转发模型流</text>
+  <text class="txt" x="478" y="348">记录 token 成本</text>
+  <text class="txt" x="478" y="384">处理 abort 信号</text>
+
+  <rect class="box model" x="802" y="150" width="250" height="360"/>
+  <text class="head" x="850" y="194">LLM / Agent</text>
+  <text class="txt" x="844" y="240">返回 token delta</text>
+  <text class="txt" x="844" y="276">可能穿插工具事件</text>
+  <text class="txt" x="844" y="312">可能返回引用信息</text>
+  <text class="txt" x="844" y="348">结束时返回用量</text>
+
+  <path class="line" d="M320 292 L436 292"/>
+  <path class="line" d="M686 292 L802 292"/>
+  <path class="dash" d="M802 374 C680 580 440 580 320 374"/>
+  <text class="small" x="454" y="596">关键体验：用户随时知道“正在生成”，也能随时停止，失败后还能重试。</text>
+</svg>

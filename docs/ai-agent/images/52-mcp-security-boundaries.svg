@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.danger{fill:#fff1f2;stroke:#e11d48}.safe{fill:#f0fdf4;stroke:#16a34a}.gate{fill:#eff6ff;stroke:#2563eb}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}.stop{stroke:#e11d48;stroke-width:4}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="58" y="58">MCP 安全边界：让 Agent 能做事，但不能越权</text>
+  <text class="sub" x="58" y="88">MCP Server 是外部世界的入口，必须把输入、权限、路径、副作用和日志都管住</text>
+
+  <rect class="box danger" x="70" y="160" width="230" height="360"/>
+  <text class="head" x="118" y="206">不可信输入</text>
+  <text class="txt" x="104" y="250">用户问题</text>
+  <text class="txt" x="104" y="284">模型生成的参数</text>
+  <text class="txt" x="104" y="318">文档里的提示注入</text>
+  <text class="txt" x="104" y="352">外部 API 返回内容</text>
+
+  <rect class="box gate" x="418" y="122" width="284" height="436"/>
+  <text class="head" x="492" y="168">安全网关</text>
+  <text class="txt" x="462" y="212">1. Schema 校验</text>
+  <text class="txt" x="462" y="248">2. 工具白名单</text>
+  <text class="txt" x="462" y="284">3. 路径 allowlist</text>
+  <text class="txt" x="462" y="320">4. 只读优先</text>
+  <text class="txt" x="462" y="356">5. 写操作确认</text>
+  <text class="txt" x="462" y="392">6. 密钥不进入模型上下文</text>
+  <text class="txt" x="462" y="428">7. 日志与追踪 ID</text>
+  <text class="txt" x="462" y="464">8. HTTP Origin 校验</text>
+
+  <rect class="box safe" x="820" y="142" width="230" height="122"/>
+  <text class="head" x="882" y="186">允许访问</text>
+  <text class="txt" x="858" y="222">学习笔记目录</text>
+  <text class="txt" x="858" y="248">只读统计数据库</text>
+  <rect class="box danger" x="820" y="330" width="230" height="122"/>
+  <text class="head" x="882" y="374">禁止访问</text>
+  <text class="txt" x="858" y="410">系统敏感目录</text>
+  <text class="txt" x="858" y="436">密钥、cookie、私有配置</text>
+
+  <path class="line" d="M300 340 L418 340"/>
+  <path class="line" d="M702 240 L820 205"/>
+  <line class="stop" x1="742" y1="376" x2="804" y2="438"/>
+  <line class="stop" x1="804" y1="376" x2="742" y2="438"/>
+  <text class="small" x="120" y="608">安全口诀：参数要验、路径要限、写入要确认、查询要只读、异常要记录、密钥不外泄。</text>
+</svg>

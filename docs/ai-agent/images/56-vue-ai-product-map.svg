@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="680" viewBox="0 0 1120 680">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.card{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.core{fill:#1d4ed8;rx:24}.coreText{font:700 24px Arial,"Microsoft YaHei",sans-serif;fill:#fff}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#94a3b8;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M2,2 L10,6 L2,10 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="1120" height="680"/>
+  <text class="title" x="60" y="58">第七阶段 Vue AI 产品化学习地图</text>
+  <text class="sub" x="60" y="88">目标：把 RAG、Agent、MCP 能力做成可用、可控、可演示、可解释的产品界面</text>
+
+  <rect class="core" x="396" y="252" width="328" height="128"/>
+  <text class="coreText" x="476" y="304">Vue AI 产品</text>
+  <text class="coreText" x="438" y="338">用户能看懂并愿意使用</text>
+
+  <rect class="card" x="70" y="142" width="245" height="132"/>
+  <text class="head" x="106" y="182">聊天工作台</text>
+  <text class="txt" x="106" y="218">消息、输入、流式输出</text>
+  <text class="txt" x="106" y="246">停止、重试、复制、历史</text>
+
+  <rect class="card" x="70" y="402" width="245" height="132"/>
+  <text class="head" x="106" y="442">知识库管理</text>
+  <text class="txt" x="106" y="478">上传、解析、索引状态</text>
+  <text class="txt" x="106" y="506">文件列表、失败重试</text>
+
+  <rect class="card" x="804" y="142" width="245" height="132"/>
+  <text class="head" x="840" y="182">Agent 过程</text>
+  <text class="txt" x="840" y="218">步骤、工具、参数、结果</text>
+  <text class="txt" x="840" y="246">人工确认、失败恢复</text>
+
+  <rect class="card" x="804" y="402" width="245" height="132"/>
+  <text class="head" x="840" y="442">产品状态</text>
+  <text class="txt" x="840" y="478">空、加载、错误、无权限</text>
+  <text class="txt" x="840" y="506">日志、成本、反馈</text>
+
+  <path class="line" d="M315 208 C370 230 380 268 396 294"/>
+  <path class="line" d="M315 468 C370 446 380 360 396 338"/>
+  <path class="line" d="M724 294 C756 262 766 226 804 208"/>
+  <path class="line" d="M724 338 C760 364 772 444 804 468"/>
+
+  <rect class="card" x="242" y="586" width="636" height="48"/>
+  <text class="small" x="300" y="616">验收标准：用户不看控制台，也能理解 AI 正在做什么、为什么这么答、失败后怎么办。</text>
+</svg>

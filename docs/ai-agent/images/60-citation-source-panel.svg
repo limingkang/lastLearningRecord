@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.panel{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.answer{fill:#f0fdf4;stroke:#16a34a;rx:16}.source{fill:#eff6ff;stroke:#2563eb;rx:16}.quote{fill:#fff7ed;stroke:#f97316;rx:12}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.tag{fill:#2563eb;rx:10}.tagText{font:700 12px Arial,"Microsoft YaHei",sans-serif;fill:#fff}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="60" y="58">RAG 引用来源展示</text>
+  <text class="sub" x="60" y="88">好的引用 UI 不是把 chunk 堆出来，而是让用户能验证答案依据</text>
+
+  <rect class="panel" x="80" y="132" width="960" height="500"/>
+  <rect class="answer" x="122" y="178" width="520" height="320"/>
+  <text class="head" x="160" y="222">AI 回答</text>
+  <text class="txt" x="160" y="270">RAG 的核心流程包括文档解析、分块、</text>
+  <text class="txt" x="160" y="300">Embedding、向量检索和带引用生成。</text>
+  <rect class="tag" x="160" y="336" width="44" height="24"/>
+  <text class="tagText" x="174" y="353">[1]</text>
+  <rect class="tag" x="214" y="336" width="44" height="24"/>
+  <text class="tagText" x="228" y="353">[2]</text>
+  <text class="small" x="160" y="412">点击引用编号，高亮右侧来源卡片和原文片段</text>
+
+  <rect class="source" x="706" y="178" width="286" height="114"/>
+  <text class="head" x="736" y="218">[1] rag-guide.md</text>
+  <text class="small" x="736" y="248">标题：RAG 构建流程</text>
+  <text class="small" x="736" y="272">相似度：0.86</text>
+
+  <rect class="quote" x="706" y="328" width="286" height="120"/>
+  <text class="head" x="736" y="368">原文片段</text>
+  <text class="small" x="736" y="398">“先将文档切分成 chunk，</text>
+  <text class="small" x="736" y="422">再生成 embedding 并入库...”</text>
+
+  <path class="line" d="M258 348 C450 350 572 255 706 235"/>
+  <path class="line" d="M642 386 C676 390 686 398 706 402"/>
+</svg>

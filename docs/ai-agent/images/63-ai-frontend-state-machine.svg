@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.state{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.idle{fill:#eff6ff;stroke:#2563eb}.run{fill:#fff7ed;stroke:#f97316}.ok{fill:#f0fdf4;stroke:#16a34a}.err{fill:#fff1f2;stroke:#e11d48}.wait{fill:#fef9c3;stroke:#eab308}.head{font:700 18px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}.small{font:400 12px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="60" y="58">AI 前端状态机</text>
+  <text class="sub" x="60" y="88">把 AI 交互拆成明确状态，才能处理停止、重试、失败恢复和人工确认</text>
+
+  <rect class="state idle" x="90" y="190" width="180" height="86"/>
+  <text class="head" x="148" y="224">idle</text>
+  <text class="txt" x="124" y="250">等待用户输入</text>
+
+  <rect class="state run" x="350" y="190" width="180" height="86"/>
+  <text class="head" x="404" y="224">streaming</text>
+  <text class="txt" x="388" y="250">接收模型流</text>
+
+  <rect class="state wait" x="610" y="110" width="180" height="86"/>
+  <text class="head" x="644" y="144">confirming</text>
+  <text class="txt" x="646" y="170">等待用户确认</text>
+
+  <rect class="state ok" x="610" y="300" width="180" height="86"/>
+  <text class="head" x="666" y="334">done</text>
+  <text class="txt" x="656" y="360">完成并保存</text>
+
+  <rect class="state err" x="870" y="190" width="180" height="86"/>
+  <text class="head" x="930" y="224">error</text>
+  <text class="txt" x="918" y="250">失败可恢复</text>
+
+  <rect class="state" x="350" y="430" width="180" height="86"/>
+  <text class="head" x="400" y="464">aborted</text>
+  <text class="txt" x="388" y="490">用户停止生成</text>
+
+  <path class="line" d="M270 233 L350 233"/>
+  <path class="line" d="M530 220 C568 194 576 160 610 150"/>
+  <path class="line" d="M530 250 C570 280 574 326 610 340"/>
+  <path class="line" d="M790 153 C850 160 850 214 870 226"/>
+  <path class="line" d="M790 343 C850 330 850 260 870 240"/>
+  <path class="line" d="M440 276 L440 430"/>
+  <path class="line" d="M350 473 C260 450 230 310 270 250"/>
+
+  <text class="small" x="292" y="606">核心做法：不要只用一个 loading 布尔值，至少区分 idle、streaming、confirming、done、error、aborted。</text>
+</svg>

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:16}.folder{fill:#eff6ff;stroke:#2563eb}.layer{fill:#f0fdf4;stroke:#22c55e}.head{font:700 21px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Consolas,"Microsoft YaHei",monospace;fill:#334155}.body{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="60" y="58">Node.js MCP Server 推荐结构</text>
+  <text class="sub" x="60" y="88">用“协议层、能力层、服务层、基础设施层”拆开，后面扩展和排错会更稳</text>
+
+  <rect class="box folder" x="70" y="132" width="420" height="492"/>
+  <text class="head" x="104" y="174">项目目录</text>
+  <text class="txt" x="104" y="218">mcp-learning-assistant/</text>
+  <text class="txt" x="128" y="250">src/</text>
+  <text class="txt" x="152" y="282">server.ts</text>
+  <text class="txt" x="152" y="314">tools/</text>
+  <text class="txt" x="176" y="346">search-notes.ts</text>
+  <text class="txt" x="176" y="378">create-todo.ts</text>
+  <text class="txt" x="152" y="410">resources/</text>
+  <text class="txt" x="176" y="442">notes-resource.ts</text>
+  <text class="txt" x="152" y="474">prompts/</text>
+  <text class="txt" x="176" y="506">daily-report.ts</text>
+  <text class="txt" x="152" y="538">services/</text>
+  <text class="txt" x="176" y="570">note-service.ts</text>
+
+  <rect class="box layer" x="628" y="132" width="360" height="86"/>
+  <text class="head" x="664" y="166">协议入口</text>
+  <text class="body" x="664" y="194">初始化 Server，选择 stdio 或 HTTP</text>
+
+  <rect class="box layer" x="628" y="258" width="360" height="86"/>
+  <text class="head" x="664" y="292">能力注册</text>
+  <text class="body" x="664" y="320">注册 Tools、Resources、Prompts</text>
+
+  <rect class="box layer" x="628" y="384" width="360" height="86"/>
+  <text class="head" x="664" y="418">业务服务</text>
+  <text class="body" x="664" y="446">搜索笔记、读写待办、查询统计</text>
+
+  <rect class="box layer" x="628" y="510" width="360" height="86"/>
+  <text class="head" x="664" y="544">安全与观测</text>
+  <text class="body" x="664" y="572">Schema 校验、权限、日志、限流</text>
+
+  <path class="line" d="M520 175 L628 175"/>
+  <path class="line" d="M520 300 L628 300"/>
+  <path class="line" d="M520 425 L628 425"/>
+  <path class="line" d="M520 550 L628 550"/>
+  <text class="small" x="400" y="658">结构原则：MCP 代码只负责协议和注册，真正的业务逻辑放到 services，方便测试和复用。</text>
+</svg>

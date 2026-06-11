@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.box{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.schema{fill:#eff6ff;stroke:#2563eb}.impl{fill:#f0fdf4;stroke:#16a34a}.result{fill:#fff7ed;stroke:#f97316}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.code{font:400 14px Consolas,"Microsoft YaHei",monospace;fill:#334155}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="58" y="58">MCP Tool 设计：从自然语言动作到稳定接口</text>
+  <text class="sub" x="58" y="88">一个好工具应该让模型容易选、参数容易填、结果容易继续推理</text>
+
+  <rect class="box schema" x="70" y="150" width="296" height="360"/>
+  <text class="head" x="112" y="192">1. 工具契约</text>
+  <text class="txt" x="110" y="232">名称：search_notes</text>
+  <text class="txt" x="110" y="264">描述：搜索学习笔记</text>
+  <text class="txt" x="110" y="296">输入：query、limit、tags</text>
+  <text class="txt" x="110" y="328">输出：标题、路径、摘要、分数</text>
+  <text class="small" x="110" y="384">命名要具体，不要叫 run、exec、doTask。</text>
+
+  <rect class="box impl" x="420" y="150" width="296" height="360"/>
+  <text class="head" x="462" y="192">2. 执行逻辑</text>
+  <text class="txt" x="460" y="232">校验参数</text>
+  <text class="txt" x="460" y="264">检查目录权限</text>
+  <text class="txt" x="460" y="296">调用 noteService.search</text>
+  <text class="txt" x="460" y="328">限制结果数量和内容长度</text>
+  <text class="txt" x="460" y="360">记录 traceId 与耗时</text>
+
+  <rect class="box result" x="770" y="150" width="296" height="360"/>
+  <text class="head" x="812" y="192">3. 返回结果</text>
+  <text class="code" x="810" y="232">[</text>
+  <text class="code" x="826" y="260">{ title, path, summary, score },</text>
+  <text class="code" x="826" y="288">{ title, path, summary, score }</text>
+  <text class="code" x="810" y="316">]</text>
+  <text class="small" x="810" y="384">结果不要直接倾倒整篇文件，先返回可判断</text>
+  <text class="small" x="810" y="412">的摘要，再让模型按需 read_note。</text>
+
+  <path class="line" d="M366 330 L420 330"/>
+  <path class="line" d="M716 330 L770 330"/>
+  <rect class="box" x="174" y="574" width="772" height="56"/>
+  <text class="txt" x="230" y="608">判断标准：工具粒度越贴近真实动作，Agent 的规划越容易稳定，安全控制也越容易写清楚。</text>
+</svg>

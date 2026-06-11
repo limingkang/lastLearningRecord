@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="700" viewBox="0 0 1120 700">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.modal{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:20}.warn{fill:#fff7ed;stroke:#f97316;rx:14}.danger{fill:#fff1f2;stroke:#e11d48;rx:14}.ok{fill:#f0fdf4;stroke:#16a34a;rx:14}.head{font:700 22px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.btnOk{fill:#16a34a;rx:12}.btnNo{fill:#e2e8f0;rx:12}.btnText{font:700 14px Arial,"Microsoft YaHei",sans-serif;fill:#fff}.btnText2{font:700 14px Arial,"Microsoft YaHei",sans-serif;fill:#334155}
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="700"/>
+  <text class="title" x="60" y="58">Human-in-the-loop 确认界面</text>
+  <text class="sub" x="60" y="88">高风险工具调用前，不要让模型静默执行；界面要让用户看懂风险和影响</text>
+
+  <rect class="modal" x="250" y="146" width="620" height="430"/>
+  <text class="head" x="304" y="196">确认执行高风险操作</text>
+  <text class="txt" x="304" y="236">Agent 准备创建 12 条商品上架任务，并写入任务系统。</text>
+
+  <rect class="warn" x="304" y="270" width="512" height="74"/>
+  <text class="txt" x="336" y="302">工具：create_listing_tasks</text>
+  <text class="small" x="336" y="326">影响：会在数据库中创建真实待办记录</text>
+
+  <rect class="danger" x="304" y="364" width="512" height="74"/>
+  <text class="txt" x="336" y="396">风险：标题和价格建议尚未人工审核</text>
+  <text class="small" x="336" y="420">建议：先预览报告，再确认写入</text>
+
+  <rect class="ok" x="304" y="458" width="512" height="50"/>
+  <text class="small" x="336" y="489">可选：只生成草稿，不创建正式任务</text>
+
+  <rect class="btnNo" x="476" y="532" width="120" height="42"/>
+  <text class="btnText2" x="520" y="558">取消</text>
+  <rect class="btnOk" x="616" y="532" width="154" height="42"/>
+  <text class="btnText" x="654" y="558">确认执行</text>
+</svg>

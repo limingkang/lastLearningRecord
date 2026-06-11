@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720">
+  <defs>
+    <style>
+      .bg{fill:#f8fafc}.title{font:700 30px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#475569}.panel{fill:#fff;stroke:#cbd5e1;stroke-width:2;rx:18}.drop{fill:#eff6ff;stroke:#2563eb;stroke-width:2;stroke-dasharray:10 8;rx:18}.ok{fill:#f0fdf4;stroke:#16a34a;rx:12}.run{fill:#fff7ed;stroke:#f97316;rx:12}.fail{fill:#fff1f2;stroke:#e11d48;rx:12}.head{font:700 20px Arial,"Microsoft YaHei",sans-serif;fill:#0f172a}.txt{font:400 15px Arial,"Microsoft YaHei",sans-serif;fill:#334155}.small{font:400 13px Arial,"Microsoft YaHei",sans-serif;fill:#64748b}.line{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M2,2 L10,6 L2,10 Z" fill="#64748b"/></marker>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="60" y="58">RAG 文件上传与索引状态 UI</text>
+  <text class="sub" x="60" y="88">用户上传后最关心的不是“接口成功”，而是文件是否已解析、已切分、已入库、是否可提问</text>
+
+  <rect class="panel" x="72" y="134" width="976" height="506"/>
+  <rect class="drop" x="110" y="178" width="330" height="188"/>
+  <text class="head" x="178" y="242">拖拽上传文件</text>
+  <text class="txt" x="152" y="282">支持 Markdown / PDF / TXT</text>
+  <text class="small" x="154" y="320">显示大小限制、类型校验、上传进度</text>
+
+  <rect class="run" x="558" y="162" width="360" height="68"/>
+  <text class="head" x="590" y="204">解析中</text>
+  <text class="small" x="704" y="203">extracting text...</text>
+  <rect class="run" x="558" y="262" width="360" height="68"/>
+  <text class="head" x="590" y="304">切分中</text>
+  <text class="small" x="704" y="303">chunking document...</text>
+  <rect class="run" x="558" y="362" width="360" height="68"/>
+  <text class="head" x="590" y="404">向量化</text>
+  <text class="small" x="704" y="403">embedding chunks...</text>
+  <rect class="ok" x="558" y="462" width="360" height="68"/>
+  <text class="head" x="590" y="504">可提问</text>
+  <text class="small" x="704" y="503">indexed successfully</text>
+
+  <path class="line" d="M440 272 L558 196"/>
+  <path class="line" d="M738 230 L738 262"/>
+  <path class="line" d="M738 330 L738 362"/>
+  <path class="line" d="M738 430 L738 462"/>
+
+  <rect class="fail" x="110" y="448" width="330" height="76"/>
+  <text class="head" x="152" y="490">失败可重试</text>
+  <text class="small" x="152" y="516">展示错误原因、重试按钮、删除按钮</text>
+</svg>

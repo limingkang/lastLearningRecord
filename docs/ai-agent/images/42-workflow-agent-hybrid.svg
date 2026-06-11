@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="560" viewBox="0 0 1220 560" role="img" aria-labelledby="title desc">
+  <title id="title">Workflow 和 Agent 混合模式</title>
+  <desc id="desc">展示外层 Workflow 固定流程保证稳定，内部局部节点使用 LLM、RAG 或 Agent 提供智能分析。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.fixed{fill:#eff6ff;stroke:#3b82f6}.smart{fill:#f5f3ff;stroke:#8b5cf6}.human{fill:#fff7ed;stroke:#f97316}.head{font:700 16px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:13px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1220" height="560"/><text class="title" x="610" y="52" text-anchor="middle">Workflow + Agent：企业项目更常见的可靠模式</text>
+  <rect class="box fixed" x="55" y="190" width="125" height="75"/><text class="head" x="117" y="220" text-anchor="middle">接收任务</text><text class="small" x="117" y="244" text-anchor="middle">固定入口</text>
+  <rect class="box fixed" x="220" y="190" width="125" height="75"/><text class="head" x="282" y="220" text-anchor="middle">读取数据</text><text class="small" x="282" y="244" text-anchor="middle">工具调用</text>
+  <rect class="box smart" x="385" y="190" width="135" height="75"/><text class="head" x="452" y="220" text-anchor="middle">智能分析</text><text class="small" x="452" y="244" text-anchor="middle">LLM / RAG</text>
+  <rect class="box fixed" x="560" y="190" width="135" height="75"/><text class="head" x="627" y="220" text-anchor="middle">规则计算</text><text class="small" x="627" y="244" text-anchor="middle">程序确定性</text>
+  <rect class="box smart" x="735" y="190" width="135" height="75"/><text class="head" x="802" y="220" text-anchor="middle">生成报告</text><text class="small" x="802" y="244" text-anchor="middle">结构化输出</text>
+  <rect class="box human" x="910" y="190" width="135" height="75"/><text class="head" x="977" y="220" text-anchor="middle">人工确认</text><text class="small" x="977" y="244" text-anchor="middle">高风险</text>
+  <rect class="box fixed" x="1085" y="190" width="100" height="75"/><text class="head" x="1135" y="220" text-anchor="middle">保存</text><text class="small" x="1135" y="244" text-anchor="middle">落库</text>
+  <line class="arrow" x1="180" y1="227" x2="217" y2="227"/><line class="arrow" x1="345" y1="227" x2="382" y2="227"/><line class="arrow" x1="520" y1="227" x2="557" y2="227"/><line class="arrow" x1="695" y1="227" x2="732" y2="227"/><line class="arrow" x1="870" y1="227" x2="907" y2="227"/><line class="arrow" x1="1045" y1="227" x2="1082" y2="227"/>
+  <rect class="box" x="220" y="365" width="780" height="80" fill="#fff" stroke="#cbd5e1"/><text class="head" x="610" y="398" text-anchor="middle">原则</text><text class="small" x="610" y="424" text-anchor="middle">外层 Workflow 保证稳定和可恢复；内部智能节点使用 LLM、RAG 或 Agent；关键动作人工确认。</text>
+</svg>
