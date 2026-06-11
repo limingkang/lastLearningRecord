@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="720" viewBox="0 0 1120 720" role="img" aria-labelledby="title desc">
+  <title id="title">NestJS 模块与分层结构</title>
+  <desc id="desc">展示 Auth、Users、Chat、Files、KnowledgeBase、Agents、Tools、Billing 等业务模块，以及 common 和 infrastructure 层。</desc>
+  <defs>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .group { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 18; }
+      .mod { fill: #eff6ff; stroke: #3b82f6; stroke-width: 2; rx: 12; }
+      .common { fill: #ecfdf5; stroke: #10b981; stroke-width: 2; rx: 12; }
+      .infra { fill: #fef3c7; stroke: #f59e0b; stroke-width: 2; rx: 12; }
+      .head { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="720"/>
+  <text class="title" x="560" y="52" text-anchor="middle">NestJS 模块与分层结构</text>
+
+  <rect class="group" x="60" y="95" width="1000" height="220"/>
+  <text class="head" x="100" y="132">业务模块 modules/</text>
+  <rect class="mod" x="100" y="160" width="135" height="55"/><text class="small" x="167" y="193" text-anchor="middle">auth</text>
+  <rect class="mod" x="260" y="160" width="135" height="55"/><text class="small" x="327" y="193" text-anchor="middle">users</text>
+  <rect class="mod" x="420" y="160" width="135" height="55"/><text class="small" x="487" y="193" text-anchor="middle">chat</text>
+  <rect class="mod" x="580" y="160" width="135" height="55"/><text class="small" x="647" y="193" text-anchor="middle">files</text>
+  <rect class="mod" x="740" y="160" width="180" height="55"/><text class="small" x="830" y="193" text-anchor="middle">knowledge-base</text>
+  <rect class="mod" x="180" y="240" width="135" height="55"/><text class="small" x="247" y="273" text-anchor="middle">agents</text>
+  <rect class="mod" x="340" y="240" width="135" height="55"/><text class="small" x="407" y="273" text-anchor="middle">tools</text>
+  <rect class="mod" x="500" y="240" width="135" height="55"/><text class="small" x="567" y="273" text-anchor="middle">billing</text>
+  <rect class="mod" x="660" y="240" width="180" height="55"/><text class="small" x="750" y="273" text-anchor="middle">observability</text>
+
+  <rect class="group" x="60" y="360" width="470" height="210"/>
+  <text class="head" x="100" y="397">通用层 common/</text>
+  <rect class="common" x="105" y="430" width="145" height="55"/><text class="small" x="177" y="463" text-anchor="middle">guards</text>
+  <rect class="common" x="280" y="430" width="145" height="55"/><text class="small" x="352" y="463" text-anchor="middle">pipes</text>
+  <rect class="common" x="105" y="500" width="145" height="55"/><text class="small" x="177" y="533" text-anchor="middle">filters</text>
+  <rect class="common" x="280" y="500" width="145" height="55"/><text class="small" x="352" y="533" text-anchor="middle">interceptors</text>
+
+  <rect class="group" x="590" y="360" width="470" height="210"/>
+  <text class="head" x="630" y="397">基础设施层 infrastructure/</text>
+  <rect class="infra" x="635" y="430" width="145" height="55"/><text class="small" x="707" y="463" text-anchor="middle">database</text>
+  <rect class="infra" x="810" y="430" width="145" height="55"/><text class="small" x="882" y="463" text-anchor="middle">llm</text>
+  <rect class="infra" x="635" y="500" width="145" height="55"/><text class="small" x="707" y="533" text-anchor="middle">queue</text>
+  <rect class="infra" x="810" y="500" width="145" height="55"/><text class="small" x="882" y="533" text-anchor="middle">fastapi-client</text>
+
+  <rect class="group" x="180" y="615" width="760" height="60"/>
+  <text class="small" x="560" y="650" text-anchor="middle">原则：Controller 只接请求；Service 写业务；Repository 管数据；AI 调用、队列、外部服务放基础设施层。</text>
+</svg>

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="700" viewBox="0 0 1180 700" role="img" aria-labelledby="title desc">
+  <title id="title">引用和幻觉控制</title>
+  <desc id="desc">展示 RAG 回答必须基于检索片段，关键结论绑定引用，资料不足时拒答，并禁止编造文件名和页码。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.source{fill:#eff6ff;stroke:#3b82f6}.answer{fill:#ecfdf5;stroke:#10b981}.warn{fill:#fff7ed;stroke:#f97316}.bad{fill:#fef2f2;stroke:#ef4444}.head{font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1180" height="700"/><text class="title" x="590" y="52" text-anchor="middle">引用和幻觉控制：让答案可验证</text>
+  <rect class="box source" x="80" y="130" width="410" height="170"/><text class="head" x="285" y="165" text-anchor="middle">检索片段</text><text class="small" x="120" y="200">chunk_12：晚 9 点后加班可报销打车费。</text><text class="small" x="120" y="230">文件：公司报销制度.pdf，第 3 页</text><text class="small" x="120" y="260">metadata：userId、page、heading、score</text>
+  <rect class="box answer" x="690" y="130" width="410" height="170"/><text class="head" x="895" y="165" text-anchor="middle">带引用回答</text><text class="small" x="730" y="200">晚 9 点后加班可以报销打车费。</text><text class="small" x="730" y="230">引用：[公司报销制度.pdf，第 3 页]</text><text class="small" x="730" y="260">关键结论必须能回到原文。</text>
+  <line class="arrow" x1="490" y1="215" x2="687" y2="215"/>
+  <rect class="box warn" x="80" y="385" width="410" height="150"/><text class="head" x="285" y="420" text-anchor="middle">资料不足时</text><text class="small" x="120" y="455">不要硬答。</text><text class="small" x="120" y="485">应该说明：当前知识库没有找到依据。</text><text class="small" x="120" y="515">可以提示用户上传相关制度。</text>
+  <rect class="box bad" x="690" y="385" width="410" height="150"/><text class="head" x="895" y="420" text-anchor="middle">禁止行为</text><text class="small" x="730" y="455">编造文件名、页码、条款号。</text><text class="small" x="730" y="485">基于常识替代知识库。</text><text class="small" x="730" y="515">引用和结论不匹配。</text>
+  <rect class="box" x="220" y="600" width="740" height="60" fill="#fff" stroke="#cbd5e1"/><text class="small" x="590" y="636" text-anchor="middle">RAG 不是让模型“更会编”，而是让模型基于可追溯证据回答。</text>
+</svg>

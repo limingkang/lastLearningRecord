@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" role="img" aria-labelledby="title desc">
+  <title id="title">Embedding 与向量检索</title>
+  <desc id="desc">展示文档 chunk 和用户问题分别生成 embedding，再计算相似度并返回 topK 相关片段。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.a{fill:#eff6ff;stroke:#3b82f6}.b{fill:#ecfdf5;stroke:#10b981}.c{fill:#fef3c7;stroke:#f59e0b}.d{fill:#f5f3ff;stroke:#8b5cf6}.head{font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.mono{font:13px Consolas,"Microsoft YaHei",monospace;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1200" height="580"/><text class="title" x="600" y="52" text-anchor="middle">Embedding 与向量检索：按语义找资料</text>
+  <rect class="box a" x="80" y="120" width="230" height="115"/><text class="head" x="195" y="154" text-anchor="middle">文档 Chunk</text><text class="small" x="125" y="185">加班打车报销规则...</text><text class="mono" x="125" y="212">chunk_001</text>
+  <rect class="box b" x="410" y="120" width="230" height="115"/><text class="head" x="525" y="154" text-anchor="middle">Document Embedding</text><text class="mono" x="455" y="190">[0.12, -0.31, ...]</text>
+  <rect class="box a" x="80" y="345" width="230" height="115"/><text class="head" x="195" y="379" text-anchor="middle">用户问题</text><text class="small" x="125" y="410">晚上加班打车能报吗？</text>
+  <rect class="box b" x="410" y="345" width="230" height="115"/><text class="head" x="525" y="379" text-anchor="middle">Query Embedding</text><text class="mono" x="455" y="415">[0.11, -0.29, ...]</text>
+  <rect class="box c" x="740" y="230" width="170" height="95"/><text class="head" x="825" y="266" text-anchor="middle">相似度计算</text><text class="small" x="825" y="292" text-anchor="middle">cosine / L2 / inner</text>
+  <rect class="box d" x="1000" y="230" width="150" height="95"/><text class="head" x="1075" y="266" text-anchor="middle">TopK 片段</text><text class="small" x="1075" y="292" text-anchor="middle">返回上下文</text>
+  <line class="arrow" x1="310" y1="177" x2="407" y2="177"/><line class="arrow" x1="310" y1="402" x2="407" y2="402"/><line class="arrow" x1="640" y1="177" x2="737" y2="255"/><line class="arrow" x1="640" y1="402" x2="737" y2="300"/><line class="arrow" x1="910" y1="277" x2="997" y2="277"/>
+  <text class="small" x="600" y="525" text-anchor="middle">注意：向量检索擅长语义相似；订单号、金额、日期等精确信息常需要关键词检索或数据库查询配合。</text>
+</svg>

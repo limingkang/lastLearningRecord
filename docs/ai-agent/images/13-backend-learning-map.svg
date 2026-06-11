@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="760" viewBox="0 0 1220 760" role="img" aria-labelledby="title desc">
+  <title id="title">第二阶段服务端学习地图</title>
+  <desc id="desc">展示 AI Agent 服务端工程需要掌握的 TypeScript、NestJS、数据库、队列、FastAPI、流式响应和工程化能力。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .sub { font: 15px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #64748b; }
+      .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .root { fill: #dbeafe; stroke: #2563eb; }
+      .ts { fill: #eff6ff; stroke: #3b82f6; }
+      .nest { fill: #ecfdf5; stroke: #10b981; }
+      .data { fill: #fef3c7; stroke: #f59e0b; }
+      .ai { fill: #f5f3ff; stroke: #8b5cf6; }
+      .ops { fill: #fff7ed; stroke: #f97316; }
+      .head { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1220" height="760"/>
+  <text class="title" x="610" y="50" text-anchor="middle">第二阶段学习地图：服务端工程基础</text>
+  <text class="sub" x="610" y="78" text-anchor="middle">目标是做出 AI 服务端骨架，而不是只会写一个模型调用接口</text>
+
+  <rect class="card root" x="490" y="115" width="240" height="72"/>
+  <text class="head" x="610" y="147" text-anchor="middle">AI 服务端骨架</text>
+  <text class="small" x="610" y="170" text-anchor="middle">NestJS 主后端 + FastAPI AI 服务</text>
+
+  <rect class="card ts" x="55" y="285" width="200" height="120"/>
+  <text class="head" x="155" y="318" text-anchor="middle">TypeScript</text>
+  <text class="small" x="95" y="348">类型建模</text>
+  <text class="small" x="95" y="374">async 错误处理</text>
+  <text class="small" x="95" y="400">环境变量</text>
+
+  <rect class="card nest" x="300" y="285" width="200" height="120"/>
+  <text class="head" x="400" y="318" text-anchor="middle">NestJS</text>
+  <text class="small" x="340" y="348">模块 / 控制器</text>
+  <text class="small" x="340" y="374">服务 / 依赖注入</text>
+  <text class="small" x="340" y="400">Pipe / Guard / Interceptor</text>
+
+  <rect class="card data" x="545" y="285" width="200" height="120"/>
+  <text class="head" x="645" y="318" text-anchor="middle">数据层</text>
+  <text class="small" x="585" y="348">PostgreSQL</text>
+  <text class="small" x="585" y="374">Prisma / TypeORM</text>
+  <text class="small" x="585" y="400">文件 / 会话 / 任务表</text>
+
+  <rect class="card ops" x="790" y="285" width="200" height="120"/>
+  <text class="head" x="890" y="318" text-anchor="middle">异步任务</text>
+  <text class="small" x="830" y="348">Redis / BullMQ</text>
+  <text class="small" x="830" y="374">重试 / 超时</text>
+  <text class="small" x="830" y="400">进度 / 失败原因</text>
+
+  <rect class="card ai" x="1035" y="285" width="150" height="120"/>
+  <text class="head" x="1110" y="318" text-anchor="middle">FastAPI</text>
+  <text class="small" x="1072" y="348">文档解析</text>
+  <text class="small" x="1072" y="374">Embedding</text>
+  <text class="small" x="1072" y="400">RAG 检索</text>
+
+  <line class="arrow" x1="530" y1="187" x2="155" y2="282"/>
+  <line class="arrow" x1="570" y1="187" x2="400" y2="282"/>
+  <line class="arrow" x1="610" y1="187" x2="645" y2="282"/>
+  <line class="arrow" x1="650" y1="187" x2="890" y2="282"/>
+  <line class="arrow" x1="690" y1="187" x2="1110" y2="282"/>
+
+  <rect class="card root" x="200" y="520" width="820" height="120"/>
+  <text class="head" x="610" y="555" text-anchor="middle">阶段最终产物</text>
+  <text class="small" x="265" y="590">一个可运行的服务端骨架：用户 / 文件 / 会话 / 消息 / 任务 / 日志 / 模型调用 / FastAPI 调用</text>
+  <text class="small" x="265" y="620">重点是接口清晰、状态可追踪、错误可解释、任务可恢复、API Key 不暴露到前端</text>
+</svg>

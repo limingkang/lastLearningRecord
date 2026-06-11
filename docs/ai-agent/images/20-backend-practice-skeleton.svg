@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="title desc">
+  <title id="title">第二阶段实践骨架</title>
+  <desc id="desc">展示第二阶段需要完成的 AI 服务端骨架，包括聊天接口、流式接口、文件上传、任务查询、FastAPI embed 和 retrieve 接口。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .group { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 18; }
+      .box { stroke-width: 2; rx: 12; }
+      .nest { fill: #ecfdf5; stroke: #10b981; }
+      .fast { fill: #f5f3ff; stroke: #8b5cf6; }
+      .data { fill: #fef3c7; stroke: #f59e0b; }
+      .head { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .mono { font: 13px "Consolas", "Microsoft YaHei", monospace; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="720"/>
+  <text class="title" x="600" y="52" text-anchor="middle">第二阶段最终实践：AI 服务端骨架</text>
+
+  <rect class="group" x="70" y="105" width="450" height="500"/>
+  <text class="head" x="110" y="145">NestJS API</text>
+  <rect class="box nest" x="110" y="175" width="360" height="55"/><text class="mono" x="130" y="209">POST /api/chat</text>
+  <rect class="box nest" x="110" y="245" width="360" height="55"/><text class="mono" x="130" y="279">GET /api/chat/stream</text>
+  <rect class="box nest" x="110" y="315" width="360" height="55"/><text class="mono" x="130" y="349">POST /api/files/upload</text>
+  <rect class="box nest" x="110" y="385" width="360" height="55"/><text class="mono" x="130" y="419">POST /api/knowledge-base/index</text>
+  <rect class="box nest" x="110" y="455" width="360" height="55"/><text class="mono" x="130" y="489">GET /api/tasks/:id</text>
+  <rect class="box nest" x="110" y="525" width="360" height="55"/><text class="mono" x="130" y="559">GET /api/sessions / messages</text>
+
+  <rect class="group" x="680" y="105" width="400" height="250"/>
+  <text class="head" x="720" y="145">FastAPI AI Service</text>
+  <rect class="box fast" x="720" y="175" width="310" height="55"/><text class="mono" x="740" y="209">POST /parse</text>
+  <rect class="box fast" x="720" y="245" width="310" height="55"/><text class="mono" x="740" y="279">POST /embed</text>
+  <rect class="box fast" x="720" y="315" width="310" height="55"/><text class="mono" x="740" y="349">POST /retrieve</text>
+
+  <rect class="group" x="680" y="420" width="400" height="185"/>
+  <text class="head" x="720" y="460">基础设施</text>
+  <rect class="box data" x="720" y="490" width="140" height="55"/><text class="small" x="790" y="523" text-anchor="middle">PostgreSQL</text>
+  <rect class="box data" x="890" y="490" width="140" height="55"/><text class="small" x="960" y="523" text-anchor="middle">Redis / BullMQ</text>
+  <rect class="box data" x="720" y="560" width="310" height="55"/><text class="small" x="875" y="593" text-anchor="middle">logs / trace / cost records</text>
+
+  <line class="arrow" x1="520" y1="410" x2="677" y2="260"/>
+  <line class="arrow" x1="520" y1="465" x2="677" y2="510"/>
+  <line class="arrow" x1="680" y1="580" x2="523" y2="560"/>
+
+  <text class="small" x="600" y="665" text-anchor="middle">验收重点：接口能跑通、任务状态可查询、错误有统一格式、调用有日志、API Key 不进前端。</text>
+</svg>

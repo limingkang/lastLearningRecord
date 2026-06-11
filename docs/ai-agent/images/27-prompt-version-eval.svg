@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="610" viewBox="0 0 1180 610" role="img" aria-labelledby="title desc">
+  <title id="title">Prompt 版本管理和回归测试</title>
+  <desc id="desc">Prompt 修改后通过测试集评估输出格式、准确性、拒答、工具选择和成本，避免凭感觉上线。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .box { stroke-width:2; rx:14; }
+      .blue { fill:#eff6ff; stroke:#3b82f6; }
+      .green { fill:#ecfdf5; stroke:#10b981; }
+      .yellow { fill:#fef3c7; stroke:#f59e0b; }
+      .purple { fill:#f5f3ff; stroke:#8b5cf6; }
+      .red { fill:#fef2f2; stroke:#ef4444; }
+      .head { font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .mono { font:13px Consolas,"Microsoft YaHei",monospace; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="610"/>
+  <text class="title" x="590" y="52" text-anchor="middle">Prompt 版本管理：不要凭感觉改提示词</text>
+
+  <rect class="box blue" x="65" y="160" width="190" height="120"/><text class="head" x="160" y="194" text-anchor="middle">Prompt 文件</text><text class="mono" x="105" y="225">resume.v1.md</text><text class="mono" x="105" y="250">resume.v2.md</text>
+  <rect class="box green" x="330" y="160" width="190" height="120"/><text class="head" x="425" y="194" text-anchor="middle">测试集</text><text class="small" x="375" y="225">输入样例</text><text class="small" x="375" y="250">期望字段 / 标准</text>
+  <rect class="box yellow" x="595" y="160" width="190" height="120"/><text class="head" x="690" y="194" text-anchor="middle">批量运行</text><text class="small" x="640" y="225">调用模型</text><text class="small" x="640" y="250">保存输出</text>
+  <rect class="box purple" x="860" y="160" width="220" height="120"/><text class="head" x="970" y="194" text-anchor="middle">评估报告</text><text class="small" x="910" y="225">格式通过率</text><text class="small" x="910" y="250">准确率 / 成本 / bad case</text>
+
+  <line class="arrow" x1="255" y1="220" x2="327" y2="220"/>
+  <line class="arrow" x1="520" y1="220" x2="592" y2="220"/>
+  <line class="arrow" x1="785" y1="220" x2="857" y2="220"/>
+
+  <rect class="box red" x="270" y="390" width="640" height="90"/>
+  <text class="head" x="590" y="423" text-anchor="middle">上线前检查</text>
+  <text class="small" x="590" y="449" text-anchor="middle">新 Prompt 是否让旧案例变差？JSON 是否更稳定？拒答是否正确？工具选择是否更准？成本是否上升？</text>
+</svg>

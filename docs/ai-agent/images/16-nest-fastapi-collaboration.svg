@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="680" viewBox="0 0 1220 680" role="img" aria-labelledby="title desc">
+  <title id="title">NestJS 和 FastAPI 协作架构</title>
+  <desc id="desc">Vue 前端只调用 NestJS，NestJS 负责业务、数据库、队列、模型适配和 Agent 任务，FastAPI 负责文档解析、Embedding、检索和评估。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { stroke-width: 2; rx: 14; }
+      .fe { fill: #eff6ff; stroke: #3b82f6; }
+      .nest { fill: #ecfdf5; stroke: #10b981; }
+      .data { fill: #fef3c7; stroke: #f59e0b; }
+      .fast { fill: #f5f3ff; stroke: #8b5cf6; }
+      .obs { fill: #fce7f3; stroke: #ec4899; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1220" height="680"/>
+  <text class="title" x="610" y="52" text-anchor="middle">NestJS 主后端 + FastAPI AI 微服务</text>
+
+  <rect class="box fe" x="70" y="120" width="160" height="80"/>
+  <text class="head" x="150" y="153" text-anchor="middle">Vue 前端</text>
+  <text class="small" x="150" y="177" text-anchor="middle">只调用 NestJS</text>
+
+  <rect class="box nest" x="350" y="95" width="260" height="360"/>
+  <text class="head" x="480" y="130" text-anchor="middle">NestJS API Gateway / BFF</text>
+  <text class="small" x="390" y="170">用户 / 权限 / 会话</text>
+  <text class="small" x="390" y="202">文件记录 / 任务状态</text>
+  <text class="small" x="390" y="234">LLM Provider Adapter</text>
+  <text class="small" x="390" y="266">Agent Task Service</text>
+  <text class="small" x="390" y="298">调用 FastAPI</text>
+  <text class="small" x="390" y="330">日志 / Trace / 成本统计</text>
+  <text class="small" x="390" y="362">统一错误和鉴权</text>
+
+  <rect class="box data" x="720" y="100" width="180" height="80"/>
+  <text class="head" x="810" y="133" text-anchor="middle">PostgreSQL</text>
+  <text class="small" x="810" y="157" text-anchor="middle">业务数据</text>
+
+  <rect class="box data" x="720" y="220" width="180" height="80"/>
+  <text class="head" x="810" y="253" text-anchor="middle">Redis / Queue</text>
+  <text class="small" x="810" y="277" text-anchor="middle">异步任务</text>
+
+  <rect class="box obs" x="720" y="340" width="180" height="80"/>
+  <text class="head" x="810" y="373" text-anchor="middle">Trace / Logs</text>
+  <text class="small" x="810" y="397" text-anchor="middle">统一 traceId</text>
+
+  <rect class="box fast" x="970" y="140" width="200" height="260"/>
+  <text class="head" x="1070" y="175" text-anchor="middle">FastAPI AI Service</text>
+  <text class="small" x="1015" y="215">Document Parser</text>
+  <text class="small" x="1015" y="247">Embedding Service</text>
+  <text class="small" x="1015" y="279">Retrieval Service</text>
+  <text class="small" x="1015" y="311">Evaluation Service</text>
+  <text class="small" x="1015" y="343">Python AI 实验</text>
+
+  <line class="arrow" x1="230" y1="160" x2="347" y2="160"/>
+  <line class="arrow" x1="610" y1="140" x2="717" y2="140"/>
+  <line class="arrow" x1="610" y1="260" x2="717" y2="260"/>
+  <line class="arrow" x1="610" y1="380" x2="717" y2="380"/>
+  <line class="arrow" x1="900" y1="260" x2="967" y2="260"/>
+  <path class="arrow" d="M970 330 C840 530, 540 530, 480 455"/>
+
+  <rect class="box" x="210" y="535" width="800" height="80" fill="#ffffff" stroke="#cbd5e1"/>
+  <text class="head" x="610" y="568" text-anchor="middle">协作原则</text>
+  <text class="small" x="610" y="594" text-anchor="middle">前端不直接碰模型 Key；用户、权限、任务状态在 NestJS；AI 计算和 Python 生态能力放 FastAPI；两边传递同一个 traceId。</text>
+</svg>

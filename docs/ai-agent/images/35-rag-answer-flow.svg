@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="600" viewBox="0 0 1240 600" role="img" aria-labelledby="title desc">
+  <title id="title">RAG 问答链路</title>
+  <desc id="desc">展示用户提问后进行权限过滤、问题改写、embedding、检索、rerank、拼接 prompt、模型回答和引用落库的流程。</desc>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>.bg{fill:#f8fafc}.title{font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.box{stroke-width:2;rx:14}.a{fill:#eff6ff;stroke:#3b82f6}.b{fill:#ecfdf5;stroke:#10b981}.c{fill:#fef3c7;stroke:#f59e0b}.d{fill:#f5f3ff;stroke:#8b5cf6}.e{fill:#fff7ed;stroke:#f97316}.head{font:700 15px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#0f172a}.small{font:13px "Microsoft YaHei","PingFang SC",Arial,sans-serif;fill:#334155}.arrow{stroke:#475569;stroke-width:2;fill:none;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect class="bg" width="1240" height="600"/><text class="title" x="620" y="52" text-anchor="middle">RAG 问答链路：检索、生成、引用和记录</text>
+  <rect class="box a" x="35" y="195" width="115" height="70"/><text class="head" x="92" y="224" text-anchor="middle">用户提问</text>
+  <rect class="box b" x="185" y="195" width="115" height="70"/><text class="head" x="242" y="218" text-anchor="middle">权限过滤</text><text class="small" x="242" y="241" text-anchor="middle">userId</text>
+  <rect class="box b" x="335" y="195" width="115" height="70"/><text class="head" x="392" y="218" text-anchor="middle">问题改写</text><text class="small" x="392" y="241" text-anchor="middle">可选</text>
+  <rect class="box c" x="485" y="195" width="115" height="70"/><text class="head" x="542" y="218" text-anchor="middle">Embedding</text><text class="small" x="542" y="241" text-anchor="middle">query vector</text>
+  <rect class="box c" x="635" y="195" width="115" height="70"/><text class="head" x="692" y="218" text-anchor="middle">检索</text><text class="small" x="692" y="241" text-anchor="middle">topK</text>
+  <rect class="box c" x="785" y="195" width="115" height="70"/><text class="head" x="842" y="218" text-anchor="middle">Rerank</text><text class="small" x="842" y="241" text-anchor="middle">可选</text>
+  <rect class="box d" x="935" y="195" width="115" height="70"/><text class="head" x="992" y="218" text-anchor="middle">拼 Prompt</text><text class="small" x="992" y="241" text-anchor="middle">资料+规则</text>
+  <rect class="box d" x="1085" y="195" width="115" height="70"/><text class="head" x="1142" y="218" text-anchor="middle">LLM 回答</text><text class="small" x="1142" y="241" text-anchor="middle">带引用</text>
+  <line class="arrow" x1="150" y1="230" x2="182" y2="230"/><line class="arrow" x1="300" y1="230" x2="332" y2="230"/><line class="arrow" x1="450" y1="230" x2="482" y2="230"/><line class="arrow" x1="600" y1="230" x2="632" y2="230"/><line class="arrow" x1="750" y1="230" x2="782" y2="230"/><line class="arrow" x1="900" y1="230" x2="932" y2="230"/><line class="arrow" x1="1050" y1="230" x2="1082" y2="230"/>
+  <rect class="box e" x="250" y="405" width="740" height="85"/><text class="head" x="620" y="438" text-anchor="middle">落库与观测</text><text class="small" x="620" y="465" text-anchor="middle">保存 question、answer、retrieved chunk ids、citations、scores、prompt version、model usage、traceId、用户反馈。</text>
+</svg>

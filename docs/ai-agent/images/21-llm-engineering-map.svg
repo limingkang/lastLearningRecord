@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="760" viewBox="0 0 1220 760" role="img" aria-labelledby="title desc">
+  <title id="title">第三阶段 LLM 应用工程学习地图</title>
+  <desc id="desc">展示第三阶段需要掌握的模型 API、Prompt、结构化输出、工具调用、流式输出、稳定性、成本和评估能力。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .sub { font:15px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#64748b; }
+      .card { fill:#fff; stroke:#cbd5e1; stroke-width:2; rx:14; }
+      .root { fill:#dbeafe; stroke:#2563eb; }
+      .a { fill:#eff6ff; stroke:#3b82f6; }
+      .b { fill:#ecfdf5; stroke:#10b981; }
+      .c { fill:#fef3c7; stroke:#f59e0b; }
+      .d { fill:#f5f3ff; stroke:#8b5cf6; }
+      .e { fill:#fff7ed; stroke:#f97316; }
+      .f { fill:#fce7f3; stroke:#ec4899; }
+      .head { font:700 18px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1220" height="760"/>
+  <text class="title" x="610" y="50" text-anchor="middle">第三阶段学习地图：LLM 应用工程</text>
+  <text class="sub" x="610" y="78" text-anchor="middle">目标不是会调一个接口，而是把模型调用封装成稳定、可测、可观测、可控成本的业务能力</text>
+
+  <rect class="card root" x="475" y="120" width="270" height="78"/>
+  <text class="head" x="610" y="153" text-anchor="middle">LLM Provider 服务</text>
+  <text class="small" x="610" y="176" text-anchor="middle">统一模型调用入口</text>
+
+  <rect class="card a" x="60" y="285" width="180" height="125"/>
+  <text class="head" x="150" y="318" text-anchor="middle">模型 API</text>
+  <text class="small" x="100" y="348">Responses</text>
+  <text class="small" x="100" y="374">Messages</text>
+  <text class="small" x="100" y="400">参数和错误</text>
+
+  <rect class="card b" x="280" y="285" width="180" height="125"/>
+  <text class="head" x="370" y="318" text-anchor="middle">Prompt</text>
+  <text class="small" x="320" y="348">角色 / 目标</text>
+  <text class="small" x="320" y="374">上下文 / 约束</text>
+  <text class="small" x="320" y="400">版本和样例</text>
+
+  <rect class="card c" x="500" y="285" width="180" height="125"/>
+  <text class="head" x="590" y="318" text-anchor="middle">结构化输出</text>
+  <text class="small" x="540" y="348">JSON Schema</text>
+  <text class="small" x="540" y="374">Zod 校验</text>
+  <text class="small" x="540" y="400">失败重试</text>
+
+  <rect class="card d" x="720" y="285" width="180" height="125"/>
+  <text class="head" x="810" y="318" text-anchor="middle">Tool Calling</text>
+  <text class="small" x="760" y="348">工具 schema</text>
+  <text class="small" x="760" y="374">参数校验</text>
+  <text class="small" x="760" y="400">结果回填</text>
+
+  <rect class="card e" x="940" y="285" width="180" height="125"/>
+  <text class="head" x="1030" y="318" text-anchor="middle">Streaming</text>
+  <text class="small" x="980" y="348">SSE</text>
+  <text class="small" x="980" y="374">停止生成</text>
+  <text class="small" x="980" y="400">部分输出</text>
+
+  <rect class="card f" x="250" y="525" width="310" height="110"/>
+  <text class="head" x="405" y="558" text-anchor="middle">稳定性</text>
+  <text class="small" x="300" y="590">retry / timeout / fallback / rate limit</text>
+  <text class="small" x="300" y="616">错误分类、幂等、可恢复</text>
+
+  <rect class="card f" x="660" y="525" width="310" height="110"/>
+  <text class="head" x="815" y="558" text-anchor="middle">成本和评估</text>
+  <text class="small" x="710" y="590">token usage / 价格表 / 日志</text>
+  <text class="small" x="710" y="616">测试集 / prompt 回归 / bad case</text>
+
+  <line class="arrow" x1="525" y1="198" x2="150" y2="282"/>
+  <line class="arrow" x1="570" y1="198" x2="370" y2="282"/>
+  <line class="arrow" x1="610" y1="198" x2="590" y2="282"/>
+  <line class="arrow" x1="650" y1="198" x2="810" y2="282"/>
+  <line class="arrow" x1="695" y1="198" x2="1030" y2="282"/>
+  <line class="arrow" x1="530" y1="410" x2="430" y2="522"/>
+  <line class="arrow" x1="810" y1="410" x2="795" y2="522"/>
+</svg>

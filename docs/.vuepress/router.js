@@ -10,7 +10,14 @@ module.exports = [
     ]
   },
   {
-    title: '随笔',
+    title: 'nodejs',
+    path: '/node/',
+    collapsable: false,
+    children: [
+    ]
+  },
+  {
+    title: '补齐基础',
     path: '/',
     collapsable: false,
     children: [
@@ -33,7 +40,7 @@ module.exports = [
       ['/ai-agent/05-agent-tools', 'Agent 工具调用和工作流'],
       ['/ai-agent/06-mcp', 'MCP 和外部工具生态'],
       ['/ai-agent/07-vue-product', 'Vue 前端和 AI 产品化'],
-      ['/ai-agent/08-portfolio-job', '项目作品集和求职准备'],
+      ['/ai-agent/08-portfolio-job', '项目实战'],
       ['/ai-agent/09-engineering-eval-security', '工程化、评估和安全'],
     ]
   },

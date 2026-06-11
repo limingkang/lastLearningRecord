@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" role="img" aria-labelledby="title desc">
+  <title id="title">模型调用稳定性与成本控制</title>
+  <desc id="desc">展示模型调用前后的超时、重试、fallback、缓存、限流、token 预算、日志和告警等控制措施。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .box { stroke-width:2; rx:14; }
+      .center { fill:#dbeafe; stroke:#2563eb; }
+      .guard { fill:#ecfdf5; stroke:#10b981; }
+      .cost { fill:#fef3c7; stroke:#f59e0b; }
+      .err { fill:#fef2f2; stroke:#ef4444; }
+      .obs { fill:#f5f3ff; stroke:#8b5cf6; }
+      .head { font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="660"/>
+  <text class="title" x="600" y="52" text-anchor="middle">稳定性与成本控制：模型调用必须可控</text>
+
+  <rect class="box center" x="485" y="255" width="230" height="100"/>
+  <text class="head" x="600" y="295" text-anchor="middle">LLM Provider</text>
+  <text class="small" x="600" y="320" text-anchor="middle">统一调用入口</text>
+
+  <rect class="box guard" x="80" y="120" width="220" height="90"/>
+  <text class="head" x="190" y="153" text-anchor="middle">请求前控制</text>
+  <text class="small" x="125" y="180">token 预算 / 限流 / 缓存</text>
+
+  <rect class="box err" x="490" y="110" width="220" height="100"/>
+  <text class="head" x="600" y="145" text-anchor="middle">失败处理</text>
+  <text class="small" x="535" y="172">timeout / retry</text>
+  <text class="small" x="535" y="198">fallback / 降级</text>
+
+  <rect class="box cost" x="900" y="120" width="220" height="90"/>
+  <text class="head" x="1010" y="153" text-anchor="middle">成本控制</text>
+  <text class="small" x="950" y="180">usage / 价格表 / 预算</text>
+
+  <rect class="box obs" x="170" y="455" width="230" height="95"/>
+  <text class="head" x="285" y="490" text-anchor="middle">日志与 Trace</text>
+  <text class="small" x="220" y="516">model / tokens / latency</text>
+
+  <rect class="box obs" x="800" y="455" width="230" height="95"/>
+  <text class="head" x="915" y="490" text-anchor="middle">质量评估</text>
+  <text class="small" x="850" y="516">schema / accuracy / bad case</text>
+
+  <line class="arrow" x1="300" y1="165" x2="500" y2="255"/>
+  <line class="arrow" x1="600" y1="210" x2="600" y2="252"/>
+  <line class="arrow" x1="900" y1="165" x2="710" y2="255"/>
+  <line class="arrow" x1="515" y1="355" x2="340" y2="452"/>
+  <line class="arrow" x1="685" y1="355" x2="850" y2="452"/>
+
+  <rect class="box" x="365" y="575" width="470" height="55" fill="#ffffff" stroke="#cbd5e1"/>
+  <text class="small" x="600" y="608" text-anchor="middle">原则：不记录就无法优化；不分类就无法重试；不设预算就无法控制成本。</text>
+</svg>

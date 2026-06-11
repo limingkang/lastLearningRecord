@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="560" viewBox="0 0 1160 560" role="img" aria-labelledby="title desc">
+  <title id="title">异步任务队列流程</title>
+  <desc id="desc">用户上传文件后，NestJS 创建任务并入队，BullMQ Worker 执行解析、切分、Embedding 和入库，前端轮询或订阅任务进度。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { stroke-width: 2; rx: 14; }
+      .fe { fill: #eff6ff; stroke: #3b82f6; }
+      .api { fill: #ecfdf5; stroke: #10b981; }
+      .queue { fill: #fef3c7; stroke: #f59e0b; }
+      .worker { fill: #f5f3ff; stroke: #8b5cf6; }
+      .err { fill: #fef2f2; stroke: #ef4444; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #64748b; stroke-width: 2; stroke-dasharray: 6 6; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1160" height="560"/>
+  <text class="title" x="580" y="52" text-anchor="middle">异步任务队列：长任务不要卡住 HTTP 请求</text>
+
+  <rect class="box fe" x="60" y="170" width="150" height="80"/>
+  <text class="head" x="135" y="202" text-anchor="middle">Vue 前端</text>
+  <text class="small" x="135" y="226" text-anchor="middle">上传文件</text>
+
+  <rect class="box api" x="270" y="150" width="180" height="120"/>
+  <text class="head" x="360" y="183" text-anchor="middle">NestJS API</text>
+  <text class="small" x="305" y="215">保存文件记录</text>
+  <text class="small" x="305" y="241">创建 task</text>
+
+  <rect class="box queue" x="520" y="170" width="150" height="80"/>
+  <text class="head" x="595" y="202" text-anchor="middle">Redis Queue</text>
+  <text class="small" x="595" y="226" text-anchor="middle">等待执行</text>
+
+  <rect class="box worker" x="740" y="130" width="190" height="160"/>
+  <text class="head" x="835" y="162" text-anchor="middle">BullMQ Worker</text>
+  <text class="small" x="780" y="194">1. 解析文档</text>
+  <text class="small" x="780" y="220">2. 切分 chunk</text>
+  <text class="small" x="780" y="246">3. 生成 embedding</text>
+  <text class="small" x="780" y="272">4. 写入数据库</text>
+
+  <rect class="box api" x="990" y="170" width="130" height="80"/>
+  <text class="head" x="1055" y="202" text-anchor="middle">任务完成</text>
+  <text class="small" x="1055" y="226" text-anchor="middle">success / failed</text>
+
+  <line class="arrow" x1="210" y1="210" x2="267" y2="210"/>
+  <line class="arrow" x1="450" y1="210" x2="517" y2="210"/>
+  <line class="arrow" x1="670" y1="210" x2="737" y2="210"/>
+  <line class="arrow" x1="930" y1="210" x2="987" y2="210"/>
+
+  <path class="dash" d="M1055 250 C920 420, 310 430, 135 250"/>
+  <text class="small" x="560" y="420" text-anchor="middle">前端通过轮询、SSE 或 WebSocket 获取任务进度，不要让用户一直等一个同步 HTTP 请求。</text>
+
+  <rect class="box err" x="360" y="345" width="420" height="70"/>
+  <text class="head" x="570" y="374" text-anchor="middle">必须记录失败原因</text>
+  <text class="small" x="570" y="398" text-anchor="middle">error_code、error_message、retry_count、started_at、finished_at</text>
+</svg>

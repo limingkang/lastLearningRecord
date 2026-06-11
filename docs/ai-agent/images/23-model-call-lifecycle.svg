@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="520" viewBox="0 0 1220 520" role="img" aria-labelledby="title desc">
+  <title id="title">一次模型调用的生命周期</title>
+  <desc id="desc">展示模型调用从业务请求、组织消息、选择模型、调用 API、解析输出、校验、记录日志到返回结果的完整过程。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .box { stroke-width:2; rx:14; }
+      .a { fill:#eff6ff; stroke:#3b82f6; }
+      .b { fill:#ecfdf5; stroke:#10b981; }
+      .c { fill:#fef3c7; stroke:#f59e0b; }
+      .d { fill:#f5f3ff; stroke:#8b5cf6; }
+      .e { fill:#fff7ed; stroke:#f97316; }
+      .head { font:700 16px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:13px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1220" height="520"/>
+  <text class="title" x="610" y="52" text-anchor="middle">一次模型调用的生命周期</text>
+
+  <rect class="box a" x="35" y="185" width="120" height="70"/><text class="head" x="95" y="213" text-anchor="middle">业务请求</text><text class="small" x="95" y="236" text-anchor="middle">用户任务</text>
+  <rect class="box b" x="190" y="185" width="135" height="70"/><text class="head" x="257" y="213" text-anchor="middle">组织消息</text><text class="small" x="257" y="236" text-anchor="middle">system/user</text>
+  <rect class="box b" x="360" y="185" width="135" height="70"/><text class="head" x="427" y="213" text-anchor="middle">选择模型</text><text class="small" x="427" y="236" text-anchor="middle">能力/成本</text>
+  <rect class="box c" x="530" y="185" width="135" height="70"/><text class="head" x="597" y="213" text-anchor="middle">调用 API</text><text class="small" x="597" y="236" text-anchor="middle">timeout</text>
+  <rect class="box d" x="700" y="185" width="135" height="70"/><text class="head" x="767" y="213" text-anchor="middle">解析输出</text><text class="small" x="767" y="236" text-anchor="middle">text/json/tool</text>
+  <rect class="box d" x="870" y="185" width="135" height="70"/><text class="head" x="937" y="213" text-anchor="middle">校验兜底</text><text class="small" x="937" y="236" text-anchor="middle">schema/retry</text>
+  <rect class="box e" x="1040" y="185" width="135" height="70"/><text class="head" x="1107" y="213" text-anchor="middle">记录返回</text><text class="small" x="1107" y="236" text-anchor="middle">log/cost</text>
+
+  <line class="arrow" x1="155" y1="220" x2="187" y2="220"/>
+  <line class="arrow" x1="325" y1="220" x2="357" y2="220"/>
+  <line class="arrow" x1="495" y1="220" x2="527" y2="220"/>
+  <line class="arrow" x1="665" y1="220" x2="697" y2="220"/>
+  <line class="arrow" x1="835" y1="220" x2="867" y2="220"/>
+  <line class="arrow" x1="1005" y1="220" x2="1037" y2="220"/>
+
+  <rect class="box" x="220" y="340" width="780" height="85" fill="#ffffff" stroke="#cbd5e1"/>
+  <text class="head" x="610" y="374" text-anchor="middle">每一步都应该能观测</text>
+  <text class="small" x="610" y="400" text-anchor="middle">prompt 版本、模型、参数、tokens、耗时、状态、错误、traceId、结构化校验结果</text>
+</svg>

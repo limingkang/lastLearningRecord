@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="540" viewBox="0 0 1160 540" role="img" aria-labelledby="title desc">
+  <title id="title">AI 流式响应流程</title>
+  <desc id="desc">用户发起聊天请求后，NestJS 调用模型流，边接收 token 边通过 SSE 返回给 Vue 前端，用户可停止生成。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { stroke-width: 2; rx: 14; }
+      .fe { fill: #eff6ff; stroke: #3b82f6; }
+      .api { fill: #ecfdf5; stroke: #10b981; }
+      .llm { fill: #f5f3ff; stroke: #8b5cf6; }
+      .obs { fill: #fff7ed; stroke: #f97316; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .dash { stroke: #64748b; stroke-width: 2; stroke-dasharray: 6 6; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1160" height="540"/>
+  <text class="title" x="580" y="52" text-anchor="middle">流式响应：让用户尽快看到模型正在生成</text>
+
+  <rect class="box fe" x="70" y="170" width="170" height="90"/>
+  <text class="head" x="155" y="204" text-anchor="middle">Vue 前端</text>
+  <text class="small" x="155" y="228" text-anchor="middle">发送问题</text>
+  <text class="small" x="155" y="250" text-anchor="middle">逐字渲染</text>
+
+  <rect class="box api" x="330" y="150" width="210" height="130"/>
+  <text class="head" x="435" y="184" text-anchor="middle">NestJS Stream API</text>
+  <text class="small" x="370" y="216">设置 SSE headers</text>
+  <text class="small" x="370" y="242">转发模型 token</text>
+  <text class="small" x="370" y="268">处理停止和超时</text>
+
+  <rect class="box llm" x="640" y="170" width="170" height="90"/>
+  <text class="head" x="725" y="204" text-anchor="middle">LLM Provider</text>
+  <text class="small" x="725" y="228" text-anchor="middle">token stream</text>
+  <text class="small" x="725" y="250" text-anchor="middle">delta chunks</text>
+
+  <rect class="box obs" x="900" y="170" width="170" height="90"/>
+  <text class="head" x="985" y="204" text-anchor="middle">保存记录</text>
+  <text class="small" x="985" y="228" text-anchor="middle">消息 / token</text>
+  <text class="small" x="985" y="250" text-anchor="middle">耗时 / 错误</text>
+
+  <line class="arrow" x1="240" y1="205" x2="327" y2="205"/>
+  <line class="arrow" x1="540" y1="205" x2="637" y2="205"/>
+  <path class="dash" d="M640 245 C560 335, 420 335, 330 245"/>
+  <path class="dash" d="M330 230 C255 335, 145 330, 155 260"/>
+  <line class="arrow" x1="810" y1="215" x2="897" y2="215"/>
+
+  <rect class="box" x="210" y="360" width="740" height="80" fill="#ffffff" stroke="#cbd5e1"/>
+  <text class="head" x="580" y="392" text-anchor="middle">流式接口要处理什么？</text>
+  <text class="small" x="580" y="418" text-anchor="middle">断开连接、停止生成、模型超时、部分输出保存、异常事件、最终完成事件。</text>
+</svg>

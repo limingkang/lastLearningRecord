@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650" role="img" aria-labelledby="title desc">
+  <title id="title">LLM Provider 适配层</title>
+  <desc id="desc">业务服务只调用统一 LLM Provider 接口，由适配层连接不同模型供应商，并统一记录日志、成本和错误。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .box { stroke-width:2; rx:14; }
+      .biz { fill:#eff6ff; stroke:#3b82f6; }
+      .adapter { fill:#ecfdf5; stroke:#10b981; }
+      .provider { fill:#f5f3ff; stroke:#8b5cf6; }
+      .obs { fill:#fff7ed; stroke:#f97316; }
+      .head { font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .mono { font:13px Consolas,"Microsoft YaHei",monospace; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="650"/>
+  <text class="title" x="600" y="52" text-anchor="middle">LLM Provider 适配层：业务代码不要绑定某一个模型厂商</text>
+
+  <rect class="box biz" x="80" y="130" width="210" height="300"/>
+  <text class="head" x="185" y="165" text-anchor="middle">业务服务</text>
+  <text class="small" x="125" y="205">ChatService</text>
+  <text class="small" x="125" y="235">ResumeService</text>
+  <text class="small" x="125" y="265">AgentService</text>
+  <text class="small" x="125" y="295">RagAnswerService</text>
+  <text class="mono" x="115" y="350">llm.generate()</text>
+  <text class="mono" x="115" y="378">llm.stream()</text>
+
+  <rect class="box adapter" x="420" y="115" width="280" height="330"/>
+  <text class="head" x="560" y="150" text-anchor="middle">统一 LLM Provider 接口</text>
+  <text class="small" x="465" y="190">统一 messages 格式</text>
+  <text class="small" x="465" y="220">统一 structured output</text>
+  <text class="small" x="465" y="250">统一 tool calling</text>
+  <text class="small" x="465" y="280">统一 streaming</text>
+  <text class="small" x="465" y="310">统一错误分类</text>
+  <text class="small" x="465" y="340">统一 token / cost 记录</text>
+  <text class="small" x="465" y="370">统一 retry / timeout</text>
+
+  <rect class="box provider" x="850" y="100" width="230" height="70"/>
+  <text class="head" x="965" y="130" text-anchor="middle">OpenAI Adapter</text>
+  <text class="small" x="965" y="153" text-anchor="middle">Responses / Tools</text>
+
+  <rect class="box provider" x="850" y="200" width="230" height="70"/>
+  <text class="head" x="965" y="230" text-anchor="middle">Claude Adapter</text>
+  <text class="small" x="965" y="253" text-anchor="middle">Messages / Tools</text>
+
+  <rect class="box provider" x="850" y="300" width="230" height="70"/>
+  <text class="head" x="965" y="330" text-anchor="middle">Qwen / DeepSeek</text>
+  <text class="small" x="965" y="353" text-anchor="middle">兼容或自定义适配</text>
+
+  <rect class="box obs" x="395" y="505" width="410" height="75"/>
+  <text class="head" x="600" y="535" text-anchor="middle">ModelCallLog</text>
+  <text class="small" x="600" y="558" text-anchor="middle">provider、model、tokens、latency、cost、status、error、traceId</text>
+
+  <line class="arrow" x1="290" y1="280" x2="417" y2="280"/>
+  <line class="arrow" x1="700" y1="170" x2="847" y2="135"/>
+  <line class="arrow" x1="700" y1="250" x2="847" y2="235"/>
+  <line class="arrow" x1="700" y1="330" x2="847" y2="335"/>
+  <line class="arrow" x1="560" y1="445" x2="590" y2="502"/>
+</svg>

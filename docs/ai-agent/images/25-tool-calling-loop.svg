@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="620" viewBox="0 0 1220 620" role="img" aria-labelledby="title desc">
+  <title id="title">Tool Calling 闭环</title>
+  <desc id="desc">模型根据工具 schema 选择工具和参数，程序校验权限并执行工具，再把工具结果回填给模型生成最终回答。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .box { stroke-width:2; rx:14; }
+      .blue { fill:#eff6ff; stroke:#3b82f6; }
+      .green { fill:#ecfdf5; stroke:#10b981; }
+      .purple { fill:#f5f3ff; stroke:#8b5cf6; }
+      .orange { fill:#fff7ed; stroke:#f97316; }
+      .red { fill:#fef2f2; stroke:#ef4444; }
+      .head { font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+      .dash { stroke:#64748b; stroke-width:2; stroke-dasharray:6 6; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1220" height="620"/>
+  <text class="title" x="610" y="52" text-anchor="middle">Tool Calling 闭环：模型提出调用，程序负责执行</text>
+
+  <rect class="box blue" x="60" y="175" width="150" height="80"/><text class="head" x="135" y="208" text-anchor="middle">用户任务</text><text class="small" x="135" y="232" text-anchor="middle">查订单物流</text>
+  <rect class="box green" x="280" y="145" width="190" height="140"/><text class="head" x="375" y="178" text-anchor="middle">可用工具</text><text class="small" x="320" y="210">query_order</text><text class="small" x="320" y="236">calculate_profit</text><text class="small" x="320" y="262">save_report</text>
+  <rect class="box purple" x="540" y="175" width="160" height="80"/><text class="head" x="620" y="208" text-anchor="middle">LLM</text><text class="small" x="620" y="232" text-anchor="middle">选择工具和参数</text>
+  <rect class="box orange" x="770" y="145" width="190" height="140"/><text class="head" x="865" y="178" text-anchor="middle">程序执行器</text><text class="small" x="810" y="210">参数校验</text><text class="small" x="810" y="236">权限校验</text><text class="small" x="810" y="262">执行工具</text>
+  <rect class="box green" x="1030" y="175" width="140" height="80"/><text class="head" x="1100" y="208" text-anchor="middle">业务系统</text><text class="small" x="1100" y="232" text-anchor="middle">DB / API</text>
+
+  <rect class="box purple" x="520" y="380" width="200" height="80"/><text class="head" x="620" y="413" text-anchor="middle">最终回答</text><text class="small" x="620" y="437" text-anchor="middle">基于工具结果生成</text>
+
+  <line class="arrow" x1="210" y1="215" x2="277" y2="215"/>
+  <line class="arrow" x1="470" y1="215" x2="537" y2="215"/>
+  <line class="arrow" x1="700" y1="215" x2="767" y2="215"/>
+  <line class="arrow" x1="960" y1="215" x2="1027" y2="215"/>
+  <path class="dash" d="M1030 255 C940 360, 765 365, 700 255"/>
+  <path class="arrow" d="M770 285 C720 340, 650 355, 620 377"/>
+  <path class="arrow" d="M620 380 C500 335, 480 270, 540 245"/>
+
+  <rect class="box red" x="300" y="510" width="620" height="65"/>
+  <text class="head" x="610" y="537" text-anchor="middle">关键安全原则</text>
+  <text class="small" x="610" y="560" text-anchor="middle">高风险工具必须人工确认；权限不能交给模型；工具调用要记录输入、输出、状态和 traceId。</text>
+</svg>

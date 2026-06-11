@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="560" viewBox="0 0 1160 560" role="img" aria-labelledby="title desc">
+  <title id="title">结构化输出和校验链路</title>
+  <desc id="desc">模型按 JSON Schema 输出结果，程序解析 JSON、做 schema 校验，失败时修复或重试，成功后进入业务系统。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#475569"/></marker>
+    <style>
+      .bg { fill:#f8fafc; }
+      .title { font:700 30px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .box { stroke-width:2; rx:14; }
+      .blue { fill:#eff6ff; stroke:#3b82f6; }
+      .green { fill:#ecfdf5; stroke:#10b981; }
+      .orange { fill:#fff7ed; stroke:#f97316; }
+      .red { fill:#fef2f2; stroke:#ef4444; }
+      .head { font:700 17px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#0f172a; }
+      .small { font:14px "Microsoft YaHei","PingFang SC",Arial,sans-serif; fill:#334155; }
+      .arrow { stroke:#475569; stroke-width:2; fill:none; marker-end:url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1160" height="560"/>
+  <text class="title" x="580" y="52" text-anchor="middle">结构化输出：不要长期依赖纯文本解析</text>
+
+  <rect class="box blue" x="60" y="175" width="160" height="80"/><text class="head" x="140" y="208" text-anchor="middle">Prompt</text><text class="small" x="140" y="232" text-anchor="middle">任务 + Schema</text>
+  <rect class="box blue" x="280" y="175" width="160" height="80"/><text class="head" x="360" y="208" text-anchor="middle">模型输出</text><text class="small" x="360" y="232" text-anchor="middle">JSON 文本</text>
+  <polygon class="box orange" points="570,150 680,215 570,280 460,215"/><text class="head" x="570" y="211" text-anchor="middle">JSON 可解析？</text>
+  <polygon class="box orange" points="810,150 920,215 810,280 700,215"/><text class="head" x="810" y="211" text-anchor="middle">Schema 通过？</text>
+  <rect class="box green" x="950" y="175" width="160" height="80"/><text class="head" x="1030" y="208" text-anchor="middle">业务使用</text><text class="small" x="1030" y="232" text-anchor="middle">保存 / 展示 / 流程</text>
+  <rect class="box red" x="475" y="365" width="260" height="75"/><text class="head" x="605" y="396" text-anchor="middle">修复、重试或降级</text><text class="small" x="605" y="420" text-anchor="middle">限制次数，记录 bad case</text>
+
+  <line class="arrow" x1="220" y1="215" x2="277" y2="215"/>
+  <line class="arrow" x1="440" y1="215" x2="457" y2="215"/>
+  <line class="arrow" x1="680" y1="215" x2="697" y2="215"/>
+  <line class="arrow" x1="920" y1="215" x2="947" y2="215"/>
+  <path class="arrow" d="M570 280 C570 320, 590 335, 605 362"/>
+  <path class="arrow" d="M810 280 C800 330, 720 350, 680 365"/>
+  <text class="small" x="688" y="198">是</text><text class="small" x="928" y="198">是</text>
+  <text class="small" x="548" y="320">否</text><text class="small" x="760" y="332">否</text>
+</svg>
