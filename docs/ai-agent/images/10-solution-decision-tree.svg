@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="680" viewBox="0 0 1180 680" role="img" aria-labelledby="title desc">
+  <title id="title">AI 应用方案选择决策树</title>
+  <desc id="desc">根据是否需要私有知识、是否需要外部操作、步骤是否固定、是否需要多轮决策，选择 RAG、普通 LLM、Workflow、Agent 或单次工具调用。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .diamond { fill: #fff7ed; stroke: #f97316; stroke-width: 2; }
+      .result { fill: #ecfdf5; stroke: #10b981; stroke-width: 2; rx: 14; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="680"/>
+  <text class="title" x="590" y="52" text-anchor="middle">普通 LLM、RAG、Tool Calling、Workflow、Agent 怎么选</text>
+
+  <rect class="box" x="500" y="90" width="180" height="60"/>
+  <text class="head" x="590" y="126" text-anchor="middle">用户需求</text>
+
+  <polygon class="diamond" points="590,190 735,260 590,330 445,260"/>
+  <text class="head" x="590" y="256" text-anchor="middle">需要私有知识？</text>
+
+  <rect class="result" x="165" y="225" width="170" height="70"/>
+  <text class="head" x="250" y="256" text-anchor="middle">RAG</text>
+  <text class="small" x="250" y="279" text-anchor="middle">查资料再回答</text>
+
+  <polygon class="diamond" points="590,370 735,440 590,510 445,440"/>
+  <text class="head" x="590" y="436" text-anchor="middle">需要外部操作？</text>
+
+  <rect class="result" x="165" y="405" width="170" height="70"/>
+  <text class="head" x="250" y="436" text-anchor="middle">普通 LLM</text>
+  <text class="small" x="250" y="459" text-anchor="middle">生成 / 总结</text>
+
+  <polygon class="diamond" points="870,370 1015,440 870,510 725,440"/>
+  <text class="head" x="870" y="436" text-anchor="middle">步骤固定？</text>
+
+  <rect class="result" x="940" y="560" width="190" height="70"/>
+  <text class="head" x="1035" y="591" text-anchor="middle">Workflow + Tool</text>
+  <text class="small" x="1035" y="614" text-anchor="middle">流程稳定优先</text>
+
+  <polygon class="diamond" points="615,535 760,605 615,675 470,605"/>
+  <text class="head" x="615" y="601" text-anchor="middle">需要多轮决策？</text>
+
+  <rect class="result" x="215" y="570" width="170" height="70"/>
+  <text class="head" x="300" y="601" text-anchor="middle">单次 Tool</text>
+  <text class="small" x="300" y="624" text-anchor="middle">查一次系统</text>
+
+  <rect class="result" x="775" y="570" width="150" height="70"/>
+  <text class="head" x="850" y="601" text-anchor="middle">Agent</text>
+  <text class="small" x="850" y="624" text-anchor="middle">动态行动</text>
+
+  <line class="arrow" x1="590" y1="150" x2="590" y2="186"/>
+  <line class="arrow" x1="445" y1="260" x2="338" y2="260"/>
+  <line class="arrow" x1="590" y1="330" x2="590" y2="366"/>
+  <line class="arrow" x1="445" y1="440" x2="338" y2="440"/>
+  <line class="arrow" x1="735" y1="440" x2="722" y2="440"/>
+  <line class="arrow" x1="870" y1="510" x2="1035" y2="557"/>
+  <path class="arrow" d="M725 440 C650 470, 620 500, 615 531"/>
+  <line class="arrow" x1="470" y1="605" x2="388" y2="605"/>
+  <line class="arrow" x1="760" y1="605" x2="772" y2="605"/>
+
+  <text class="small" x="390" y="246">是</text>
+  <text class="small" x="612" y="356">否</text>
+  <text class="small" x="390" y="426">否</text>
+  <text class="small" x="770" y="426">是</text>
+  <text class="small" x="985" y="532">是</text>
+  <text class="small" x="650" y="514">否</text>
+  <text class="small" x="420" y="592">否</text>
+  <text class="small" x="770" y="592">是</text>
+</svg>

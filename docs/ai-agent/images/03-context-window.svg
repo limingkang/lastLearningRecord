@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
+  <title id="title">上下文窗口</title>
+  <desc id="desc">展示 system prompt、历史对话、用户问题、RAG 片段、工具结果和输出空间共同占用上下文窗口。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .head { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .window { fill: #ffffff; stroke: #2563eb; stroke-width: 3; rx: 18; }
+      .part { stroke: #cbd5e1; stroke-width: 2; rx: 12; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .note { fill: #fff7ed; stroke: #f97316; stroke-width: 2; rx: 12; }
+    </style>
+  </defs>
+  <rect class="bg" width="1100" height="620"/>
+  <text class="title" x="550" y="52" text-anchor="middle">上下文窗口：模型一次能看到的内容</text>
+
+  <rect class="window" x="180" y="110" width="740" height="330"/>
+  <text class="head" x="550" y="146" text-anchor="middle">Context Window</text>
+
+  <rect class="part" x="220" y="180" width="180" height="80" fill="#dbeafe"/>
+  <text class="head" x="310" y="212" text-anchor="middle">System Prompt</text>
+  <text class="small" x="310" y="236" text-anchor="middle">应用规则</text>
+
+  <rect class="part" x="460" y="180" width="180" height="80" fill="#ecfdf5"/>
+  <text class="head" x="550" y="212" text-anchor="middle">历史对话</text>
+  <text class="small" x="550" y="236" text-anchor="middle">最近几轮</text>
+
+  <rect class="part" x="700" y="180" width="180" height="80" fill="#fef3c7"/>
+  <text class="head" x="790" y="212" text-anchor="middle">用户问题</text>
+  <text class="small" x="790" y="236" text-anchor="middle">当前任务</text>
+
+  <rect class="part" x="220" y="300" width="180" height="80" fill="#f5f3ff"/>
+  <text class="head" x="310" y="332" text-anchor="middle">RAG 片段</text>
+  <text class="small" x="310" y="356" text-anchor="middle">检索资料</text>
+
+  <rect class="part" x="460" y="300" width="180" height="80" fill="#fff7ed"/>
+  <text class="head" x="550" y="332" text-anchor="middle">工具结果</text>
+  <text class="small" x="550" y="356" text-anchor="middle">外部证据</text>
+
+  <rect class="part" x="700" y="300" width="180" height="80" fill="#fce7f3"/>
+  <text class="head" x="790" y="332" text-anchor="middle">输出空间</text>
+  <text class="small" x="790" y="356" text-anchor="middle">回答也占 token</text>
+
+  <line class="arrow" x1="920" y1="275" x2="995" y2="275"/>
+  <rect class="part" x="995" y="235" width="85" height="80" fill="#e0f2fe"/>
+  <text class="head" x="1037" y="268" text-anchor="middle">回答</text>
+  <text class="small" x="1037" y="292" text-anchor="middle">生成</text>
+
+  <rect class="note" x="170" y="490" width="760" height="80"/>
+  <text class="head" x="550" y="522" text-anchor="middle">核心问题</text>
+  <text class="small" x="550" y="548" text-anchor="middle">怎样把最有用的信息放进有限窗口，而不是把所有内容都塞进去？</text>
+</svg>

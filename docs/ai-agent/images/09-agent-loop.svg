@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="720" viewBox="0 0 1080 720" role="img" aria-labelledby="title desc">
+  <title id="title">最小 Agent Loop</title>
+  <desc id="desc">Agent 接收目标后理解状态、规划下一步、判断是否调用工具、观察结果，循环直到完成、失败或超限。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .blue { fill: #eff6ff; stroke: #3b82f6; }
+      .purple { fill: #f5f3ff; stroke: #8b5cf6; }
+      .green { fill: #ecfdf5; stroke: #10b981; }
+      .orange { fill: #fff7ed; stroke: #f97316; }
+      .red { fill: #fef2f2; stroke: #ef4444; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1080" height="720"/>
+  <text class="title" x="540" y="52" text-anchor="middle">最小 Agent Loop</text>
+
+  <rect class="box blue" x="440" y="95" width="200" height="70"/>
+  <text class="head" x="540" y="126" text-anchor="middle">接收目标</text>
+  <text class="small" x="540" y="149" text-anchor="middle">用户想完成什么？</text>
+
+  <rect class="box blue" x="440" y="205" width="200" height="70"/>
+  <text class="head" x="540" y="236" text-anchor="middle">理解当前状态</text>
+  <text class="small" x="540" y="259" text-anchor="middle">已有信息和限制</text>
+
+  <rect class="box purple" x="440" y="315" width="200" height="70"/>
+  <text class="head" x="540" y="346" text-anchor="middle">规划下一步</text>
+  <text class="small" x="540" y="369" text-anchor="middle">决定下一次动作</text>
+
+  <polygon class="box orange" points="540,430 665,500 540,570 415,500"/>
+  <text class="head" x="540" y="496" text-anchor="middle">需要工具吗？</text>
+
+  <rect class="box green" x="740" y="465" width="170" height="70"/>
+  <text class="head" x="825" y="496" text-anchor="middle">调用工具</text>
+  <text class="small" x="825" y="519" text-anchor="middle">查库 / 读文件</text>
+
+  <rect class="box green" x="740" y="585" width="170" height="70"/>
+  <text class="head" x="825" y="616" text-anchor="middle">观察结果</text>
+  <text class="small" x="825" y="639" text-anchor="middle">更新状态</text>
+
+  <rect class="box purple" x="170" y="465" width="170" height="70"/>
+  <text class="head" x="255" y="496" text-anchor="middle">直接生成</text>
+  <text class="small" x="255" y="519" text-anchor="middle">不需要工具时</text>
+
+  <polygon class="box orange" points="540,585 650,645 540,705 430,645"/>
+  <text class="head" x="540" y="641" text-anchor="middle">目标完成？</text>
+
+  <rect class="box green" x="170" y="610" width="170" height="70"/>
+  <text class="head" x="255" y="641" text-anchor="middle">输出最终结果</text>
+  <text class="small" x="255" y="664" text-anchor="middle">交付产物</text>
+
+  <rect class="box red" x="740" y="335" width="170" height="70"/>
+  <text class="head" x="825" y="366" text-anchor="middle">失败兜底</text>
+  <text class="small" x="825" y="389" text-anchor="middle">超时 / 超预算</text>
+
+  <line class="arrow" x1="540" y1="165" x2="540" y2="202"/>
+  <line class="arrow" x1="540" y1="275" x2="540" y2="312"/>
+  <line class="arrow" x1="540" y1="385" x2="540" y2="426"/>
+  <line class="arrow" x1="665" y1="500" x2="737" y2="500"/>
+  <line class="arrow" x1="825" y1="535" x2="825" y2="582"/>
+  <path class="arrow" d="M740 620 C680 620, 675 635, 650 645"/>
+  <line class="arrow" x1="415" y1="500" x2="343" y2="500"/>
+  <path class="arrow" d="M255 535 C300 600, 380 620, 430 645"/>
+  <line class="arrow" x1="430" y1="645" x2="343" y2="645"/>
+  <path class="arrow" d="M650 645 C990 650, 1010 330, 640 350"/>
+  <path class="arrow" d="M650 645 C720 615, 760 520, 665 500"/>
+  <path class="arrow" d="M665 500 C720 450, 800 435, 825 405"/>
+
+  <text class="small" x="700" y="488">是</text>
+  <text class="small" x="365" y="488">否</text>
+  <text class="small" x="380" y="632">是</text>
+  <text class="small" x="820" y="690">否，继续规划</text>
+</svg>

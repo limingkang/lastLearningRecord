@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="820" viewBox="0 0 1200 820" role="img" aria-labelledby="title desc">
+  <title id="title">第一阶段学习地图</title>
+  <desc id="desc">展示 AI 应用从用户需求出发，分为普通 LLM、RAG、工具调用、Workflow 和 Agent，并展开各自关键组成。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 15px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #64748b; }
+      .card { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .root { fill: #dbeafe; stroke: #2563eb; }
+      .main { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .llm { fill: #eff6ff; stroke: #3b82f6; }
+      .rag { fill: #ecfdf5; stroke: #10b981; }
+      .tool { fill: #fff7ed; stroke: #f97316; }
+      .flow { fill: #f5f3ff; stroke: #8b5cf6; }
+      .agent { fill: #fdf2f8; stroke: #ec4899; }
+    </style>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1200" height="820"/>
+  <text class="title" x="600" y="50" text-anchor="middle">第一阶段学习地图</text>
+  <text class="subtitle" x="600" y="78" text-anchor="middle">先建立全局认知：AI 应用不是一种技术，而是多种能力的组合</text>
+
+  <rect class="card root" x="500" y="110" width="200" height="64"/>
+  <text class="main" x="600" y="150" text-anchor="middle">用户需求</text>
+
+  <rect class="card root" x="500" y="220" width="200" height="64"/>
+  <text class="main" x="600" y="260" text-anchor="middle">AI 应用</text>
+  <line class="arrow" x1="600" y1="174" x2="600" y2="218"/>
+
+  <rect class="card llm" x="55" y="350" width="170" height="70"/>
+  <text class="main" x="140" y="382" text-anchor="middle">普通 LLM</text>
+  <text class="small" x="140" y="405" text-anchor="middle">生成 / 总结 / 改写</text>
+
+  <rect class="card rag" x="270" y="350" width="170" height="70"/>
+  <text class="main" x="355" y="382" text-anchor="middle">RAG</text>
+  <text class="small" x="355" y="405" text-anchor="middle">查资料再回答</text>
+
+  <rect class="card tool" x="515" y="350" width="170" height="70"/>
+  <text class="main" x="600" y="382" text-anchor="middle">Tool Calling</text>
+  <text class="small" x="600" y="405" text-anchor="middle">连接外部系统</text>
+
+  <rect class="card flow" x="760" y="350" width="170" height="70"/>
+  <text class="main" x="845" y="382" text-anchor="middle">Workflow</text>
+  <text class="small" x="845" y="405" text-anchor="middle">固定业务流程</text>
+
+  <rect class="card agent" x="975" y="350" width="170" height="70"/>
+  <text class="main" x="1060" y="382" text-anchor="middle">Agent</text>
+  <text class="small" x="1060" y="405" text-anchor="middle">围绕目标行动</text>
+
+  <line class="arrow" x1="520" y1="284" x2="140" y2="347"/>
+  <line class="arrow" x1="560" y1="284" x2="355" y2="347"/>
+  <line class="arrow" x1="600" y1="284" x2="600" y2="347"/>
+  <line class="arrow" x1="640" y1="284" x2="845" y2="347"/>
+  <line class="arrow" x1="680" y1="284" x2="1060" y2="347"/>
+
+  <rect class="card rag" x="235" y="485" width="240" height="220"/>
+  <text class="main" x="355" y="518" text-anchor="middle">RAG 关键链路</text>
+  <text class="small" x="275" y="555">1. 文档解析</text>
+  <text class="small" x="275" y="585">2. 切分 Chunk</text>
+  <text class="small" x="275" y="615">3. 生成 Embedding</text>
+  <text class="small" x="275" y="645">4. 向量检索</text>
+  <text class="small" x="275" y="675">5. 带引用回答</text>
+  <line class="arrow" x1="355" y1="420" x2="355" y2="482"/>
+
+  <rect class="card tool" x="480" y="485" width="240" height="220"/>
+  <text class="main" x="600" y="518" text-anchor="middle">工具调用能力</text>
+  <text class="small" x="520" y="555">1. 查询数据库</text>
+  <text class="small" x="520" y="585">2. 调用业务 API</text>
+  <text class="small" x="520" y="615">3. 计算和校验</text>
+  <text class="small" x="520" y="645">4. 写入外部系统</text>
+  <text class="small" x="520" y="675">5. 权限与确认</text>
+  <line class="arrow" x1="600" y1="420" x2="600" y2="482"/>
+
+  <rect class="card agent" x="920" y="485" width="240" height="220"/>
+  <text class="main" x="1040" y="518" text-anchor="middle">Agent 循环</text>
+  <text class="small" x="960" y="555">1. 理解目标</text>
+  <text class="small" x="960" y="585">2. 规划步骤</text>
+  <text class="small" x="960" y="615">3. 调用工具</text>
+  <text class="small" x="960" y="645">4. 观察结果</text>
+  <text class="small" x="960" y="675">5. 交付产物</text>
+  <line class="arrow" x1="1060" y1="420" x2="1040" y2="482"/>
+
+  <rect class="card flow" x="735" y="485" width="170" height="220"/>
+  <text class="main" x="820" y="518" text-anchor="middle">Workflow</text>
+  <text class="small" x="770" y="555">步骤固定</text>
+  <text class="small" x="770" y="585">程序控制</text>
+  <text class="small" x="770" y="615">易测试</text>
+  <text class="small" x="770" y="645">易恢复</text>
+  <line class="arrow" x1="845" y1="420" x2="820" y2="482"/>
+
+  <rect class="card llm" x="55" y="485" width="165" height="220"/>
+  <text class="main" x="138" y="518" text-anchor="middle">LLM 基础</text>
+  <text class="small" x="88" y="555">Token</text>
+  <text class="small" x="88" y="585">上下文窗口</text>
+  <text class="small" x="88" y="615">Prompt</text>
+  <text class="small" x="88" y="645">结构化输出</text>
+  <text class="small" x="88" y="675">幻觉控制</text>
+  <line class="arrow" x1="140" y1="420" x2="138" y2="482"/>
+
+  <text class="subtitle" x="600" y="765" text-anchor="middle">学习顺序：先理解普通 LLM，再学 RAG、工具调用、Workflow，最后理解 Agent 和 MCP</text>
+</svg>

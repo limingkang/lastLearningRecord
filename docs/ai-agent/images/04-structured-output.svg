@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="500" viewBox="0 0 1120 500" role="img" aria-labelledby="title desc">
+  <title id="title">结构化输出处理链路</title>
+  <desc id="desc">模型输出 JSON 后，程序需要解析和 Schema 校验，失败则重试或修复，成功后写入系统。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .blue { fill: #eff6ff; stroke: #3b82f6; }
+      .green { fill: #ecfdf5; stroke: #10b981; }
+      .orange { fill: #fff7ed; stroke: #f97316; }
+      .red { fill: #fef2f2; stroke: #ef4444; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="500"/>
+  <text class="title" x="560" y="52" text-anchor="middle">结构化输出：让模型结果进入业务系统</text>
+
+  <rect class="box blue" x="45" y="170" width="140" height="76"/>
+  <text class="head" x="115" y="202" text-anchor="middle">用户输入</text>
+  <text class="small" x="115" y="226" text-anchor="middle">主题 / 任务</text>
+
+  <rect class="box blue" x="235" y="170" width="150" height="76"/>
+  <text class="head" x="310" y="202" text-anchor="middle">Prompt</text>
+  <text class="small" x="310" y="226" text-anchor="middle">要求返回 JSON</text>
+
+  <rect class="box blue" x="435" y="170" width="150" height="76"/>
+  <text class="head" x="510" y="202" text-anchor="middle">模型输出</text>
+  <text class="small" x="510" y="226" text-anchor="middle">文本或 JSON</text>
+
+  <polygon class="box orange" points="690,150 790,208 690,266 590,208"/>
+  <text class="head" x="690" y="204" text-anchor="middle">能解析</text>
+  <text class="small" x="690" y="228" text-anchor="middle">JSON?</text>
+
+  <polygon class="box orange" points="900,150 1000,208 900,266 800,208"/>
+  <text class="head" x="900" y="204" text-anchor="middle">符合</text>
+  <text class="small" x="900" y="228" text-anchor="middle">Schema?</text>
+
+  <rect class="box green" x="885" y="330" width="190" height="76"/>
+  <text class="head" x="980" y="362" text-anchor="middle">进入业务系统</text>
+  <text class="small" x="980" y="386" text-anchor="middle">保存 / 渲染 / 下一步</text>
+
+  <rect class="box red" x="525" y="330" width="220" height="76"/>
+  <text class="head" x="635" y="362" text-anchor="middle">修复或重试</text>
+  <text class="small" x="635" y="386" text-anchor="middle">重新提示模型或兜底</text>
+
+  <line class="arrow" x1="185" y1="208" x2="232" y2="208"/>
+  <line class="arrow" x1="385" y1="208" x2="432" y2="208"/>
+  <line class="arrow" x1="585" y1="208" x2="588" y2="208"/>
+  <line class="arrow" x1="790" y1="208" x2="798" y2="208"/>
+  <line class="arrow" x1="900" y1="266" x2="960" y2="328"/>
+  <path class="arrow" d="M690 266 C690 300, 650 305, 635 328"/>
+  <path class="arrow" d="M900 150 C820 92, 650 98, 585 168"/>
+  <text class="small" x="822" y="178">是</text>
+  <text class="small" x="925" y="302">是</text>
+  <text class="small" x="640" y="300">否</text>
+  <text class="small" x="805" y="116">否</text>
+</svg>

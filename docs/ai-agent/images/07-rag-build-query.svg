@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">RAG 建库阶段和问答阶段</title>
+  <desc id="desc">上半部分展示文档上传、解析、清洗、切分、Embedding 和入库；下半部分展示用户提问、检索、重排、拼接上下文和生成答案。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .group { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 18; }
+      .box { stroke-width: 2; rx: 12; }
+      .build { fill: #ecfdf5; stroke: #10b981; }
+      .query { fill: #eff6ff; stroke: #3b82f6; }
+      .head { font: 700 17px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 13px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .label { font: 700 20px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="700"/>
+  <text class="title" x="600" y="52" text-anchor="middle">RAG 的两个阶段：建库和问答</text>
+
+  <rect class="group" x="50" y="90" width="1100" height="250"/>
+  <text class="label" x="95" y="128">建库阶段</text>
+
+  <rect class="box build" x="95" y="170" width="130" height="70"/>
+  <text class="head" x="160" y="200" text-anchor="middle">上传文档</text>
+  <text class="small" x="160" y="223" text-anchor="middle">PDF / MD / TXT</text>
+
+  <rect class="box build" x="270" y="170" width="130" height="70"/>
+  <text class="head" x="335" y="200" text-anchor="middle">解析文本</text>
+  <text class="small" x="335" y="223" text-anchor="middle">提取正文</text>
+
+  <rect class="box build" x="445" y="170" width="130" height="70"/>
+  <text class="head" x="510" y="200" text-anchor="middle">清洗文本</text>
+  <text class="small" x="510" y="223" text-anchor="middle">去噪 / 规范</text>
+
+  <rect class="box build" x="620" y="170" width="130" height="70"/>
+  <text class="head" x="685" y="200" text-anchor="middle">切分 Chunk</text>
+  <text class="small" x="685" y="223" text-anchor="middle">标题 / 段落</text>
+
+  <rect class="box build" x="795" y="170" width="130" height="70"/>
+  <text class="head" x="860" y="200" text-anchor="middle">Embedding</text>
+  <text class="small" x="860" y="223" text-anchor="middle">文本转向量</text>
+
+  <rect class="box build" x="970" y="170" width="130" height="70"/>
+  <text class="head" x="1035" y="200" text-anchor="middle">写入向量库</text>
+  <text class="small" x="1035" y="223" text-anchor="middle">含 metadata</text>
+
+  <line class="arrow" x1="225" y1="205" x2="267" y2="205"/>
+  <line class="arrow" x1="400" y1="205" x2="442" y2="205"/>
+  <line class="arrow" x1="575" y1="205" x2="617" y2="205"/>
+  <line class="arrow" x1="750" y1="205" x2="792" y2="205"/>
+  <line class="arrow" x1="925" y1="205" x2="967" y2="205"/>
+
+  <rect class="group" x="50" y="390" width="1100" height="250"/>
+  <text class="label" x="95" y="428">问答阶段</text>
+
+  <rect class="box query" x="80" y="480" width="115" height="70"/>
+  <text class="head" x="137" y="510" text-anchor="middle">用户提问</text>
+
+  <rect class="box query" x="225" y="480" width="115" height="70"/>
+  <text class="head" x="282" y="510" text-anchor="middle">问题改写</text>
+  <text class="small" x="282" y="533" text-anchor="middle">可选</text>
+
+  <rect class="box query" x="370" y="480" width="115" height="70"/>
+  <text class="head" x="427" y="510" text-anchor="middle">问题向量</text>
+
+  <rect class="box query" x="515" y="480" width="115" height="70"/>
+  <text class="head" x="572" y="510" text-anchor="middle">检索</text>
+  <text class="small" x="572" y="533" text-anchor="middle">向量 + 关键词</text>
+
+  <rect class="box query" x="660" y="480" width="115" height="70"/>
+  <text class="head" x="717" y="510" text-anchor="middle">Rerank</text>
+  <text class="small" x="717" y="533" text-anchor="middle">可选</text>
+
+  <rect class="box query" x="805" y="480" width="115" height="70"/>
+  <text class="head" x="862" y="510" text-anchor="middle">拼上下文</text>
+
+  <rect class="box query" x="950" y="480" width="115" height="70"/>
+  <text class="head" x="1007" y="510" text-anchor="middle">生成答案</text>
+  <text class="small" x="1007" y="533" text-anchor="middle">带引用</text>
+
+  <line class="arrow" x1="195" y1="515" x2="222" y2="515"/>
+  <line class="arrow" x1="340" y1="515" x2="367" y2="515"/>
+  <line class="arrow" x1="485" y1="515" x2="512" y2="515"/>
+  <line class="arrow" x1="630" y1="515" x2="657" y2="515"/>
+  <line class="arrow" x1="775" y1="515" x2="802" y2="515"/>
+  <line class="arrow" x1="920" y1="515" x2="947" y2="515"/>
+</svg>

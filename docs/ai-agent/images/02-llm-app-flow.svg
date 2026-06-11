@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="540" viewBox="0 0 1180 540" role="img" aria-labelledby="title desc">
+  <title id="title">普通 LLM 应用流程</title>
+  <desc id="desc">用户通过 Vue 前端提问，NestJS 后端组织上下文并调用大模型，再校验、记录日志并返回结果。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 15px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #64748b; }
+      .lane { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .head { font: 700 18px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 14px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .box { fill: #eff6ff; stroke: #3b82f6; stroke-width: 2; rx: 12; }
+      .process { fill: #ecfdf5; stroke: #10b981; stroke-width: 2; rx: 12; }
+      .warn { fill: #fff7ed; stroke: #f97316; stroke-width: 2; rx: 12; }
+    </style>
+  </defs>
+  <rect class="bg" width="1180" height="540"/>
+  <text class="title" x="590" y="48" text-anchor="middle">普通 LLM 应用流程</text>
+  <text class="subtitle" x="590" y="76" text-anchor="middle">关键不是“直接把问题发给模型”，而是组织上下文、校验输出、记录日志和失败兜底</text>
+
+  <rect class="box" x="40" y="180" width="140" height="80"/>
+  <text class="head" x="110" y="214" text-anchor="middle">用户</text>
+  <text class="small" x="110" y="238" text-anchor="middle">输入问题</text>
+
+  <rect class="box" x="240" y="180" width="150" height="80"/>
+  <text class="head" x="315" y="214" text-anchor="middle">Vue 前端</text>
+  <text class="small" x="315" y="238" text-anchor="middle">发送问题和会话</text>
+
+  <rect class="process" x="450" y="135" width="180" height="170"/>
+  <text class="head" x="540" y="168" text-anchor="middle">NestJS 后端</text>
+  <text class="small" x="482" y="200">1. 读取历史</text>
+  <text class="small" x="482" y="226">2. 拼接 Prompt</text>
+  <text class="small" x="482" y="252">3. 调用模型</text>
+  <text class="small" x="482" y="278">4. 解析结果</text>
+
+  <rect class="box" x="700" y="180" width="150" height="80"/>
+  <text class="head" x="775" y="214" text-anchor="middle">大模型 API</text>
+  <text class="small" x="775" y="238" text-anchor="middle">文本 / JSON</text>
+
+  <rect class="warn" x="910" y="135" width="210" height="170"/>
+  <text class="head" x="1015" y="168" text-anchor="middle">工程兜底</text>
+  <text class="small" x="945" y="200">校验输出格式</text>
+  <text class="small" x="945" y="226">记录 token 成本</text>
+  <text class="small" x="945" y="252">保存调用日志</text>
+  <text class="small" x="945" y="278">处理超时和重试</text>
+
+  <line class="arrow" x1="180" y1="220" x2="237" y2="220"/>
+  <line class="arrow" x1="390" y1="220" x2="447" y2="220"/>
+  <line class="arrow" x1="630" y1="220" x2="697" y2="220"/>
+  <path class="arrow" d="M850 220 C880 220, 880 220, 907 220"/>
+  <path class="arrow" d="M910 300 C760 420, 390 420, 240 260"/>
+
+  <rect class="lane" x="210" y="360" width="760" height="92"/>
+  <text class="head" x="590" y="392" text-anchor="middle">一次请求里必须能回答的问题</text>
+  <text class="small" x="255" y="425">用户问了什么？给模型看了什么？模型返回了什么？是否通过校验？花了多少 token？哪一步失败？</text>
+</svg>

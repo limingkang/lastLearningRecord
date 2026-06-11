@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="460" viewBox="0 0 1120 460" role="img" aria-labelledby="title desc">
+  <title id="title">RAG 问答流程</title>
+  <desc id="desc">用户提问经过清洗改写、知识库检索、取回片段、拼接 Prompt、调用大模型，最终生成带引用答案。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#475569"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .title { font: 700 30px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .box { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 14; }
+      .blue { fill: #eff6ff; stroke: #3b82f6; }
+      .green { fill: #ecfdf5; stroke: #10b981; }
+      .orange { fill: #fff7ed; stroke: #f97316; }
+      .head { font: 700 16px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #0f172a; }
+      .small { font: 13px "Microsoft YaHei", "PingFang SC", Arial, sans-serif; fill: #334155; }
+      .arrow { stroke: #475569; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect class="bg" width="1120" height="460"/>
+  <text class="title" x="560" y="52" text-anchor="middle">RAG 问答流程：先查资料，再基于资料回答</text>
+
+  <rect class="box blue" x="35" y="180" width="130" height="70"/>
+  <text class="head" x="100" y="210" text-anchor="middle">用户提问</text>
+  <text class="small" x="100" y="233" text-anchor="middle">报销规则？</text>
+
+  <rect class="box blue" x="215" y="180" width="140" height="70"/>
+  <text class="head" x="285" y="210" text-anchor="middle">问题清洗</text>
+  <text class="small" x="285" y="233" text-anchor="middle">改写 / 补全</text>
+
+  <rect class="box green" x="405" y="180" width="140" height="70"/>
+  <text class="head" x="475" y="210" text-anchor="middle">检索知识库</text>
+  <text class="small" x="475" y="233" text-anchor="middle">向量 + 关键词</text>
+
+  <rect class="box green" x="595" y="180" width="140" height="70"/>
+  <text class="head" x="665" y="210" text-anchor="middle">相关 Chunk</text>
+  <text class="small" x="665" y="233" text-anchor="middle">带 metadata</text>
+
+  <rect class="box orange" x="785" y="180" width="140" height="70"/>
+  <text class="head" x="855" y="210" text-anchor="middle">拼接 Prompt</text>
+  <text class="small" x="855" y="233" text-anchor="middle">问题 + 资料</text>
+
+  <rect class="box orange" x="975" y="115" width="120" height="70"/>
+  <text class="head" x="1035" y="145" text-anchor="middle">调用 LLM</text>
+  <text class="small" x="1035" y="168" text-anchor="middle">生成答案</text>
+
+  <rect class="box green" x="975" y="260" width="120" height="70"/>
+  <text class="head" x="1035" y="290" text-anchor="middle">带引用回答</text>
+  <text class="small" x="1035" y="313" text-anchor="middle">答案 + 来源</text>
+
+  <line class="arrow" x1="165" y1="215" x2="212" y2="215"/>
+  <line class="arrow" x1="355" y1="215" x2="402" y2="215"/>
+  <line class="arrow" x1="545" y1="215" x2="592" y2="215"/>
+  <line class="arrow" x1="735" y1="215" x2="782" y2="215"/>
+  <path class="arrow" d="M925 205 C950 185, 950 165, 972 150"/>
+  <line class="arrow" x1="1035" y1="185" x2="1035" y2="257"/>
+
+  <rect class="box" x="250" y="340" width="620" height="70"/>
+  <text class="head" x="560" y="370" text-anchor="middle">RAG 的核心约束</text>
+  <text class="small" x="560" y="394" text-anchor="middle">答案必须基于检索片段；资料不足时应该拒答或说明不确定；引用要能回到原文。</text>
+</svg>
