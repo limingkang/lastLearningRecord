@@ -14,6 +14,7 @@ module.exports = [
     path: '/node/',
     collapsable: false,
     children: [
+      ['/node/onenode', '框架设计和登录鉴权'],
     ]
   },
   {
@@ -23,7 +24,7 @@ module.exports = [
     children: [
       ['/babel/babel', 'babel小计'],
       ['/uniapp/uniapp', 'uniapp'],
-      ['/three/three', 'three'],
+      ['/three/three', 'threejs'],
       ['/question/question', 'question'],
     ]
   },
