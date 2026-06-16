@@ -15,6 +15,8 @@ module.exports = [
     collapsable: false,
     children: [
       ['/node/onenode', '框架设计和登录鉴权'],
+      ['/node/twonode', 'RBAC权限、菜单和审计日志'],
+      ['/node/threenode', '商品中心业务'],
     ]
   },
   {
