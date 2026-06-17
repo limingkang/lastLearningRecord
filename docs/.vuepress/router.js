@@ -20,6 +20,10 @@ module.exports = [
       ['/node/fournode', '小程序会员'],
       ['/node/fivenode', '购物车和订单预览'],
       ['/node/sixnode', '创建订单数据库事务'],
+      ['/node/sevennode', '微信支付'],
+      ['/node/eightnode', '发货售后退款'],
+      ['/node/ninenode', '营销CMS首页配置'],
+      ['/node/tennode', '文件上传导入导出'],
     ]
   },
   {
