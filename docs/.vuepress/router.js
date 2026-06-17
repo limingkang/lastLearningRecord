@@ -19,7 +19,7 @@ module.exports = [
       ['/node/threenode', '后台商品中心'],
       ['/node/fournode', '小程序会员'],
       ['/node/fivenode', '购物车和订单预览'],
-      ['/node/sixnode', '创建订单'],
+      ['/node/sixnode', '创建订单数据库事务'],
     ]
   },
   {

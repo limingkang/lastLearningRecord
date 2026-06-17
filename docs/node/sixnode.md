@@ -48,7 +48,7 @@ MarketingModule
 IdempotencyInterceptor
 ```
 
-## 创建订单不能只是 insert 一条订单
+## 创建订单不只是insert一条订单
 
 如果只写：
 
@@ -100,7 +100,7 @@ await db.order.create({
 - 并发下很难保证一致。
 - 数据库事务就是为这种多表一致性场景准备的。
 
-## 3. 本章目录结构
+## 本章目录结构
 
 在前面模块基础上，新增或强化：
 
@@ -133,9 +133,9 @@ src/
 - 订单模块负责“创建订单时需要锁哪些 SKU”这个业务编排。
 - 交易事务里可以调用库存能力，但库存模块不要反过来知道订单页面怎么提交。
 
-## 4. 第一步：理解订单相关表设计
+## 订单相关表设计
 
-### 4.1 订单主表 `ec_order`
+### 订单主表 `ec_order`
 
 ```text
 ec_order
@@ -182,7 +182,7 @@ ec_order
 - 后面商品价格和营销规则会变化。
 - 历史订单必须保留当时的计算依据。
 
-### 4.2 订单明细表 `ec_order_item`
+### 订单明细表 `ec_order_item`
 
 ```text
 ec_order_item
@@ -216,7 +216,7 @@ ec_order_item
 - 售后、发货、库存、报表仍然需要追溯商品。
 - 快照负责展示，关联 id 负责业务追踪。
 
-### 4.3 订单地址表 `ec_order_address`
+### 订单地址表 `ec_order_address`
 
 ```text
 ec_order_address
@@ -239,7 +239,7 @@ ec_order_address
 - 历史订单必须保留下单时地址。
 - 物流、售后、客服要看的都是当时订单地址。
 
-### 4.4 库存余额表 `ec_stock_balance`
+### 库存余额表 `ec_stock_balance`
 
 ```text
 ec_stock_balance
@@ -271,7 +271,7 @@ onHandQty = availableQty + lockedQty + 其他不可售库存
 onHandQty = availableQty + lockedQty
 ```
 
-### 4.5 库存锁表 `ec_stock_lock`
+### 库存锁表 `ec_stock_lock`
 
 ```text
 ec_stock_lock
@@ -294,7 +294,7 @@ ec_stock_lock
 - 超时关单任务要批量释放库存。
 - 出现库存问题时可以追溯订单和 SKU。
 
-### 4.6 库存流水表 `ec_stock_movement`
+### 库存流水表 `ec_stock_movement`
 
 ```text
 ec_stock_movement
@@ -318,7 +318,7 @@ ec_stock_movement
 - 下单锁库存、取消释放、支付扣减、后台调整都要可追溯。
 - 库存问题通常需要按 SKU 和业务单据反查。
 
-## 5. 第二步：订单状态怎么设计
+## 订单状态设计
 
 本章先用最小状态：
 
@@ -356,9 +356,9 @@ after_sale
 
 第一版不要设计太复杂。状态越多，状态流转校验越复杂。
 
-## 6. 第三步：定义 DTO
+## 定义 DTO
 
-### 6.1 `order-address.dto.ts`
+### `order-address.dto.ts`
 
 ```ts
 import { IsOptional, IsString, Length, Matches } from 'class-validator';
@@ -395,7 +395,7 @@ export class OrderAddressDto {
 }
 ```
 
-### 6.2 `create-order.dto.ts`
+### `create-order.dto.ts`
 
 ```ts
 import { Type } from 'class-transformer';
@@ -440,7 +440,7 @@ export class CreateOrderDto {
 - 服务端创建订单时直接保存地址快照。
 - 如果用 `addressId`，也要先查会员地址，再复制成订单地址快照。
 
-## 7. 第四步：生成订单号
+## 生成订单号
 
 订单号不能直接用数据库自增 id。
 
@@ -481,7 +481,7 @@ tenant_id + order_no 唯一
 - 多实例并发下更要靠数据库兜底。
 - 如果插入时唯一冲突，可以重新生成订单号再试一次。
 
-## 8. 第五步：库存锁定的核心算法
+## 库存锁定的核心算法
 
 库存防超卖的关键不是先查再更新：
 
@@ -514,7 +514,7 @@ WHERE sku_id = ?
 
 数据库保证这条更新是原子的。
 
-### 8.1 `inventory.service.ts`
+### `inventory.service.ts`
 
 ```ts
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -553,7 +553,8 @@ export class InventoryService {
         },
       },
     });
-
+    // 影响行数 = 1：锁库存成功
+    // 影响行数 = 0：库存不足，锁库存失败
     if (updated.count === 0) {
       throw new BadRequestException('库存不足');
     }
@@ -617,7 +618,7 @@ export class InventoryService {
 - 服务崩溃时释放逻辑可能没执行。
 - 放进同一个事务最可靠。
 
-## 9. 第六步：优惠券锁定
+## 优惠券锁定
 
 优惠券和库存一样，也会遇到并发问题。
 
@@ -642,7 +643,7 @@ WHERE id = ?
   AND expired_at > now()
 ```
 
-### 9.1 `marketing.service.ts`
+### `marketing.service.ts`
 
 ```ts
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -755,11 +756,11 @@ locked
   -> 取消订单/超时关单 -> available
 ```
 
-## 10. 第七步：创建订单 Service
+## 创建订单 Service
 
-下面是教学版核心代码。它不是直接复制项目代码，而是把真实创建订单的关键动作抽出来。
+下面把真实创建订单的关键动作抽出来。
 
-### 10.1 `order.service.ts`
+### `order.service.ts`
 
 ```ts
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
@@ -799,8 +800,10 @@ export class OrderService {
     const preview = await this.buildPreviewAgain(member, checkedCartItems, dto.couponId);
     const address = dto.address ?? (await this.getDefaultMemberAddress(member));
     const orderNo = createOrderNo();
-
+    // 在事务内必须用 tx 执行数据库操作，才算加入这个事务
+    // this.prisma.ecOrder.create(...) 这个就不属于当前事务
     const order = await this.prisma.$transaction(async (tx) => {
+       //把这部分操作放到事务内,保证里面操作一起成功，或者一起失败
       const createdOrder = await tx.ecOrder.create({
         data: {
           tenantId: member.tenantId,
@@ -953,11 +956,11 @@ qty
 
 但第一版先不要混在一起。
 
-## 11. 第八步：订单详情和列表
+## 订单详情和列表
 
 创建订单后，需要能查看订单。
 
-### 11.1 `order.service.ts`
+### `order.service.ts`
 
 ```ts
 async list(
@@ -1065,7 +1068,7 @@ async detail(member: CurrentMemberPayload, id: string) {
 - 不能只按订单 id 查询，否则可能越权。
 - 后台订单详情才可以按管理员权限查询所有订单。
 
-## 12. 第九步：取消订单释放库存和优惠券
+## 取消订单释放库存和优惠券
 
 创建订单后，如果用户取消订单，或者订单超时未支付，必须释放资源：
 
@@ -1081,7 +1084,7 @@ async detail(member: CurrentMemberPayload, id: string) {
   清空 lockedOrderId
 ```
 
-### 12.1 `inventory.service.ts`
+### `inventory.service.ts`
 
 ```ts
 async releaseOrderStock(
@@ -1169,7 +1172,7 @@ async releaseOrderStock(
 - 已支付扣减的锁不能再释放到可售库存。
 - 状态过滤是防重复释放的关键。
 
-### 12.2 `order.service.ts`
+### `order.service.ts`
 
 ```ts
 async cancel(member: CurrentMemberPayload, id: string) {
@@ -1228,7 +1231,7 @@ async cancel(member: CurrentMemberPayload, id: string) {
 - 如果库存释放了但订单没取消，会导致状态不一致。
 - 如果订单取消了但库存没释放，会导致库存被永久占用。
 
-## 13. 第十步：超时未支付关单
+## 超时未支付关单
 
 创建订单锁库存后，用户可能不支付。不能让库存永久锁住。
 
@@ -1246,7 +1249,7 @@ async cancel(member: CurrentMemberPayload, id: string) {
   订单改为 cancelled
 ```
 
-### 13.1 `order-lifecycle.service.ts`
+### `order-lifecycle.service.ts`
 
 ```ts
 async closeExpiredUnpaidOrders() {
@@ -1324,7 +1327,7 @@ async closeExpiredUnpaidOrders() {
 - 如果不二次确认，可能错误关闭已支付订单。
 - 事务内再次检查当前状态，是定时任务防误伤的常见写法。
 
-## 14. 第十一步：幂等防重复提交
+## 幂等防重复提交
 
 创建订单接口最怕重复提交：
 
@@ -1349,7 +1352,7 @@ async closeExpiredUnpaidOrders() {
 - 小程序可能重复触发。
 - 服务端必须自己保证幂等。
 
-### 14.1 幂等请求头
+### 幂等请求头
 
 客户端创建订单时带：
 
@@ -1363,7 +1366,7 @@ Idempotency-Key: uuid-from-client
 - 请求体不同：拒绝，提示 key 冲突。
 - 第一次还在处理：拒绝或等待。
 
-### 14.2 幂等表 `sys_idempotency_key`
+### 幂等表 `sys_idempotency_key`
 
 ```text
 sys_idempotency_key
@@ -1389,7 +1392,7 @@ sys_idempotency_key
 - 如果同一个 key 换了请求体，说明客户端复用了 key。
 - 这时必须拒绝，否则会返回不对应的订单结果。
 
-### 14.3 `idempotency.interceptor.ts`
+### `idempotency.interceptor.ts`
 
 ```ts
 import {
@@ -1526,9 +1529,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
 - 回调幂等通常按支付流水号、平台交易号处理。
 - 不能简单依赖客户端传的 `Idempotency-Key`。
 
-## 15. 第十二步：Controller 暴露接口
+## Controller 暴露接口
 
-### 15.1 `order.controller.ts`
+### `order.controller.ts`
 
 ```ts
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
@@ -1571,9 +1574,9 @@ export class OrderController {
 - 还会释放库存、释放优惠券、写流水。
 - 用 `POST /:id/cancel` 更能表达业务动作。
 
-## 16. 第十三步：接口调用顺序
+## 接口调用顺序
 
-### 16.1 登录
+### 登录
 
 ```bash
 curl -X POST http://localhost:3000/api/app/v1/auth/mock-login \
@@ -1581,7 +1584,7 @@ curl -X POST http://localhost:3000/api/app/v1/auth/mock-login \
   -d "{\"code\":\"dev-user-001\",\"nickname\":\"学习用户\"}"
 ```
 
-### 16.2 加购并勾选商品
+### 加购并勾选商品
 
 ```bash
 curl -X POST http://localhost:3000/api/app/v1/cart/items \
@@ -1590,7 +1593,7 @@ curl -X POST http://localhost:3000/api/app/v1/cart/items \
   -d "{\"skuId\":\"1\",\"qty\":2}"
 ```
 
-### 16.3 订单预览
+### 订单预览
 
 ```bash
 curl -X POST http://localhost:3000/api/app/v1/orders/preview \
@@ -1599,7 +1602,7 @@ curl -X POST http://localhost:3000/api/app/v1/orders/preview \
   -d "{\"couponId\":\"1\"}"
 ```
 
-### 16.4 创建订单
+### 创建订单
 
 ```bash
 curl -X POST http://localhost:3000/api/app/v1/orders \
@@ -1621,14 +1624,14 @@ curl -X POST http://localhost:3000/api/app/v1/orders \
   }"
 ```
 
-### 16.5 查看订单详情
+### 查看订单详情
 
 ```bash
 curl http://localhost:3000/api/app/v1/orders/<orderId> \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-### 16.6 取消订单
+### 取消订单
 
 ```bash
 curl -X POST http://localhost:3000/api/app/v1/orders/<orderId>/cancel \
@@ -1636,7 +1639,7 @@ curl -X POST http://localhost:3000/api/app/v1/orders/<orderId>/cancel \
   -H "Idempotency-Key: cancel-order-001"
 ```
 
-## 17. 本章和真实 ERP 项目的对应关系
+## 本章和真实 ERP 项目的对应关系
 
 真实项目中可以重点看：
 
