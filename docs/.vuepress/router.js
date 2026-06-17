@@ -16,7 +16,10 @@ module.exports = [
     children: [
       ['/node/onenode', '框架设计和登录鉴权'],
       ['/node/twonode', 'RBAC权限、菜单和审计日志'],
-      ['/node/threenode', '商品中心业务'],
+      ['/node/threenode', '后台商品中心'],
+      ['/node/fournode', '小程序会员'],
+      ['/node/fivenode', '购物车和订单预览'],
+      ['/node/sixnode', '创建订单'],
     ]
   },
   {
