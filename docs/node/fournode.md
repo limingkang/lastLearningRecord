@@ -60,7 +60,7 @@ GET /api/admin/v1/members
 GET /api/admin/v1/members/:id
 ```
 
-使用内存仓储。真实 ERP 项目中，对应表主要是：
+当前项目的会员、地址、收藏、积分都已经使用 MySQL + Prisma 持久化，不再使用内存仓储。对应表主要是：
 
 ```text
 ec_member
@@ -68,6 +68,114 @@ ec_member_wechat
 ec_member_address
 ec_member_favorite
 ec_member_points_log
+```
+
+真实代码位置：
+
+```text
+server/src/modules/auth/auth.service.ts
+server/src/modules/member/member.service.ts
+server/src/common/guards/member-auth.guard.ts
+server/src/modules/redis/redis.service.ts
+server/prisma/schema.prisma
+```
+
+小程序登录会写会员表、微信身份表，并把登录态写入 Redis：
+
+```ts
+async wechatLogin(dto: MiniappLoginDto, forceMock = false) {
+  const tenant = await this.getDefaultTenant();
+  const session = await this.resolveWechatSession(dto, forceMock);
+  const existingIdentity = await this.prisma.ecMemberWechat.findFirst({
+    where: {
+      tenantId: tenant.id,
+      deletedAt: null,
+      OR: [
+        { openid: session.openid },
+        ...(session.unionid ? [{ unionid: session.unionid }] : []),
+      ],
+    },
+    include: { member: true },
+  });
+
+  const now = new Date();
+  let member = existingIdentity?.member;
+
+  if (!member || member.deletedAt) {
+    member = await this.prisma.ecMember.create({
+      data: {
+        tenantId: tenant.id,
+        nickname: dto.nickname || '微信用户',
+        avatarUrl: dto.avatarUrl || null,
+        status: 'enabled',
+        lastLoginAt: now,
+      },
+    });
+  }
+
+  await this.prisma.ecMemberWechat.upsert({
+    where: {
+      tenantId_openid: {
+        tenantId: tenant.id,
+        openid: session.openid,
+      },
+    },
+    create: {
+      tenantId: tenant.id,
+      memberId: member.id,
+      openid: session.openid,
+      unionid: session.unionid || null,
+      sessionKeyHash: this.hashValue(session.sessionKey),
+      lastLoginAt: now,
+    },
+    update: {
+      memberId: member.id,
+      unionid: session.unionid || null,
+      sessionKeyHash: this.hashValue(session.sessionKey),
+      lastLoginAt: now,
+      deletedAt: null,
+    },
+  });
+
+  const token = await this.jwtService.signAsync({
+    sub: member.id.toString(),
+    tenantId: tenant.id.toString(),
+    openid: session.openid,
+    type: 'member',
+  });
+
+  await this.redisService.rememberLoginSession({
+    scope: 'member',
+    tenantId: tenant.id.toString(),
+    actorId: member.id.toString(),
+    token,
+    ttlSeconds: this.resolveJwtTtlSeconds(),
+  });
+
+  return { token, member: await this.getProfile({ memberId: member.id, tenantId: tenant.id, openid: session.openid }) };
+}
+```
+
+会员接口每次请求会通过 `MemberAuthGuard` 校验 JWT 和 Redis 登录态：
+
+```ts
+const payload = await this.jwtService.verifyAsync<MemberTokenPayload>(token, {
+  secret: this.configService.get<string>('jwt.accessSecret') || 'dev-access-secret',
+});
+
+if (payload.type !== 'member') {
+  throw new UnauthorizedException('会员身份无效');
+}
+
+if (!(await this.redisService.hasLoginSession('member', payload.tenantId, payload.sub))) {
+  throw new UnauthorizedException('登录态已失效，请重新登录');
+}
+
+request.member = {
+  memberId: BigInt(payload.sub),
+  tenantId: BigInt(payload.tenantId),
+  openid: payload.openid,
+};
 ```
 
 ## 目录结构
@@ -451,366 +559,191 @@ export class MemberQueryDto {
 
 ## 实现会员仓储
 
-仓储层负责保存和查询数据。现在用内存数组，后面替换成 Prisma。
+当前项目没有 `member.repository.ts` 这层内存仓储。会员、微信身份、地址、收藏、积分流水都通过 `MemberService` 直接注入 `PrismaService` 读写 MySQL。
 
-### `member.repository.ts`
+### `member.service.ts` 的存储入口
 
 ```ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { randomUUID, createHash } from 'crypto';
-import {
-  Member,
-  MemberAddress,
-  MemberFavorite,
-  MemberPointsLog,
-  MemberWechatIdentity,
-} from './member.types';
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { CurrentMemberPayload } from '../../common/decorators/current-member.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 import { AddressMutationDto } from './dto/address-mutation.dto';
 
 @Injectable()
-export class MemberRepository {
-  private members: Member[] = [];
-  private wechatIdentities: MemberWechatIdentity[] = [];
-  private addresses: MemberAddress[] = [];
-  private favorites: MemberFavorite[] = [];
-  private pointsLogs: MemberPointsLog[] = [];
-
-  async findWechatIdentity(tenantId: string, openid: string) {
-    return this.wechatIdentities.find(
-      (item) => item.tenantId === tenantId && item.openid === openid,
-    );
-  }
-
-  async findMemberById(tenantId: string, memberId: string) {
-    return this.members.find(
-      (item) => item.tenantId === tenantId && item.id === memberId && !item.deletedAt,
-    );
-  }
-
-  async createMember(input: {
-    tenantId: string;
-    nickname?: string;
-    avatarUrl?: string;
-  }) {
-    const now = new Date();
-    const member: Member = {
-      id: randomUUID(),
-      tenantId: input.tenantId,
-      nickname: input.nickname,
-      avatarUrl: input.avatarUrl,
-      points: 0,
-      status: 'enabled',
-      lastLoginAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.members.push(member);
-    return member;
-  }
-
-  async createWechatIdentity(input: {
-    tenantId: string;
-    memberId: string;
-    openid: string;
-    unionid?: string;
-    sessionKey?: string;
-  }) {
-    const exists = await this.findWechatIdentity(input.tenantId, input.openid);
-    if (exists) {
-      throw new BadRequestException('微信身份已经绑定');
-    }
-
-    const now = new Date();
-    const identity: MemberWechatIdentity = {
-      id: randomUUID(),
-      tenantId: input.tenantId,
-      memberId: input.memberId,
-      openid: input.openid,
-      unionid: input.unionid,
-      sessionKeyHash: input.sessionKey ? this.hashSessionKey(input.sessionKey) : undefined,
-      lastLoginAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.wechatIdentities.push(identity);
-    return identity;
-  }
-
-  async touchMemberLogin(tenantId: string, memberId: string) {
-    const member = await this.findMemberById(tenantId, memberId);
-    if (!member) {
-      throw new NotFoundException('会员不存在');
-    }
-
-    member.lastLoginAt = new Date();
-    member.updatedAt = new Date();
-    return member;
-  }
-
-  async updateMemberProfile(
-    tenantId: string,
-    memberId: string,
-    patch: Partial<Pick<Member, 'nickname' | 'avatarUrl'>>,
-  ) {
-    const member = await this.findMemberById(tenantId, memberId);
-    if (!member) {
-      throw new NotFoundException('会员不存在');
-    }
-
-    member.nickname = patch.nickname ?? member.nickname;
-    member.avatarUrl = patch.avatarUrl ?? member.avatarUrl;
-    member.updatedAt = new Date();
-    return member;
-  }
-
-  async bindPhone(tenantId: string, memberId: string, phone: string) {
-    const exists = this.members.find(
-      (item) => item.tenantId === tenantId && item.phone === phone && item.id !== memberId,
-    );
-    if (exists) {
-      throw new BadRequestException('手机号已经被其他会员绑定');
-    }
-
-    const member = await this.findMemberById(tenantId, memberId);
-    if (!member) {
-      throw new NotFoundException('会员不存在');
-    }
-
-    member.phone = phone;
-    member.updatedAt = new Date();
-    return member;
-  }
+export class MemberService {
+  constructor(private readonly prisma: PrismaService) {}
 
   async listAddresses(tenantId: string, memberId: string) {
-    return this.addresses
-      .filter((item) => item.tenantId === tenantId && item.memberId === memberId && !item.deletedAt)
-      .sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
-  }
-
-  async createAddress(tenantId: string, memberId: string, dto: AddressMutationDto) {
-    const current = await this.listAddresses(tenantId, memberId);
-    if (current.length >= 20) {
-      throw new BadRequestException('最多只能保存 20 个收货地址');
-    }
-
-    const shouldDefault = dto.isDefault || current.length === 0;
-    if (shouldDefault) {
-      await this.clearDefaultAddress(tenantId, memberId);
-    }
-
-    const now = new Date();
-    const address: MemberAddress = {
-      id: randomUUID(),
-      tenantId,
-      memberId,
-      receiverName: dto.receiverName,
-      receiverPhone: dto.receiverPhone,
-      province: dto.province,
-      city: dto.city,
-      district: dto.district,
-      detail: dto.detail,
-      postalCode: dto.postalCode,
-      isDefault: shouldDefault,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.addresses.push(address);
-    return address;
-  }
-
-  async updateAddress(
-    tenantId: string,
-    memberId: string,
-    addressId: string,
-    dto: AddressMutationDto,
-  ) {
-    const address = await this.getAddress(tenantId, memberId, addressId);
-
-    if (dto.isDefault) {
-      await this.clearDefaultAddress(tenantId, memberId);
-    }
-
-    Object.assign(address, {
-      receiverName: dto.receiverName,
-      receiverPhone: dto.receiverPhone,
-      province: dto.province,
-      city: dto.city,
-      district: dto.district,
-      detail: dto.detail,
-      postalCode: dto.postalCode,
-      isDefault: dto.isDefault ?? address.isDefault,
-      updatedAt: new Date(),
+    return this.prisma.ecMemberAddress.findMany({
+      where: {
+        tenantId: BigInt(tenantId),
+        memberId: BigInt(memberId),
+        deletedAt: null,
+      },
+      orderBy: [
+        { isDefault: 'desc' },
+        { updatedAt: 'desc' },
+      ],
     });
-
-    return address;
   }
 
-  async setDefaultAddress(tenantId: string, memberId: string, addressId: string) {
-    const address = await this.getAddress(tenantId, memberId, addressId);
-    await this.clearDefaultAddress(tenantId, memberId);
-    address.isDefault = true;
-    address.updatedAt = new Date();
-    return address;
-  }
+  async createAddress(member: CurrentMemberPayload, dto: AddressMutationDto) {
+    await this.ensureAddressLimit(member);
+    const shouldSetDefault = dto.isDefault || !(await this.hasAddress(member));
 
-  async deleteAddress(tenantId: string, memberId: string, addressId: string) {
-    const address = await this.getAddress(tenantId, memberId, addressId);
-    address.deletedAt = new Date();
-    address.updatedAt = new Date();
-    return { success: true };
-  }
-
-  async addFavorite(tenantId: string, memberId: string, productId: string) {
-    const exists = this.favorites.find(
-      (item) =>
-        item.tenantId === tenantId &&
-        item.memberId === memberId &&
-        item.productId === productId,
-    );
-
-    if (exists) {
-      return exists;
-    }
-
-    const favorite: MemberFavorite = {
-      id: randomUUID(),
-      tenantId,
-      memberId,
-      productId,
-      createdAt: new Date(),
-    };
-
-    this.favorites.push(favorite);
-    return favorite;
-  }
-
-  async removeFavorite(tenantId: string, memberId: string, productId: string) {
-    this.favorites = this.favorites.filter(
-      (item) =>
-        !(
-          item.tenantId === tenantId &&
-          item.memberId === memberId &&
-          item.productId === productId
-        ),
-    );
-    return { success: true };
-  }
-
-  async listFavorites(tenantId: string, memberId: string, page = 1, pageSize = 20) {
-    const all = this.favorites.filter(
-      (item) => item.tenantId === tenantId && item.memberId === memberId,
-    );
-
-    return {
-      total: all.length,
-      items: all.slice((page - 1) * pageSize, page * pageSize),
-    };
-  }
-
-  async addPoints(input: {
-    tenantId: string;
-    memberId: string;
-    bizType: string;
-    bizId?: string;
-    points: number;
-    remark?: string;
-  }) {
-    const member = await this.findMemberById(input.tenantId, input.memberId);
-    if (!member) {
-      throw new NotFoundException('会员不存在');
-    }
-
-    member.points += input.points;
-    member.updatedAt = new Date();
-
-    const log: MemberPointsLog = {
-      id: randomUUID(),
-      tenantId: input.tenantId,
-      memberId: input.memberId,
-      bizType: input.bizType,
-      bizId: input.bizId,
-      direction: 'increase',
-      points: input.points,
-      balanceAfter: member.points,
-      remark: input.remark,
-      createdAt: new Date(),
-    };
-
-    this.pointsLogs.push(log);
-    return log;
-  }
-
-  async listPointsLogs(
-    tenantId: string,
-    memberId: string,
-    query: { bizType?: string; page?: number; pageSize?: number },
-  ) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
-    const all = this.pointsLogs
-      .filter(
-        (item) =>
-          item.tenantId === tenantId &&
-          item.memberId === memberId &&
-          (!query.bizType || item.bizType === query.bizType),
-      )
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-
-    return {
-      total: all.length,
-      items: all.slice((page - 1) * pageSize, page * pageSize),
-    };
-  }
-
-  async listMembers(query: { keyword?: string; status?: string; page?: number; pageSize?: number }) {
-    const page = query.page ?? 1;
-    const pageSize = query.pageSize ?? 20;
-    const keyword = query.keyword?.trim();
-
-    const all = this.members.filter((item) => {
-      if (item.deletedAt) return false;
-      if (query.status && item.status !== query.status) return false;
-      if (!keyword) return true;
-      return item.nickname?.includes(keyword) || item.phone?.includes(keyword);
-    });
-
-    return {
-      total: all.length,
-      items: all.slice((page - 1) * pageSize, page * pageSize),
-    };
-  }
-
-  private async getAddress(tenantId: string, memberId: string, addressId: string) {
-    const address = this.addresses.find(
-      (item) =>
-        item.tenantId === tenantId &&
-        item.memberId === memberId &&
-        item.id === addressId &&
-        !item.deletedAt,
-    );
-
-    if (!address) {
-      throw new NotFoundException('收货地址不存在');
-    }
-
-    return address;
-  }
-
-  private async clearDefaultAddress(tenantId: string, memberId: string) {
-    for (const address of this.addresses) {
-      if (address.tenantId === tenantId && address.memberId === memberId) {
-        address.isDefault = false;
-        address.updatedAt = new Date();
+    const address = await this.prisma.$transaction(async (tx) => {
+      if (shouldSetDefault) {
+        await this.clearDefaultAddress(tx, member);
       }
-    }
+
+      return tx.ecMemberAddress.create({
+        data: {
+          tenantId: member.tenantId,
+          memberId: member.memberId,
+          receiverName: dto.receiverName,
+          receiverPhone: dto.receiverPhone,
+          province: dto.province,
+          city: dto.city,
+          district: dto.district,
+          detail: dto.detail,
+          postalCode: dto.postalCode,
+          isDefault: shouldSetDefault,
+        },
+      });
+    });
+
+    return this.toAddress(address);
   }
 
-  private hashSessionKey(sessionKey: string) {
-    return createHash('sha256').update(sessionKey).digest('hex');
+  private clearDefaultAddress(
+    tx: Prisma.TransactionClient,
+    member: CurrentMemberPayload,
+  ) {
+    return tx.ecMemberAddress.updateMany({
+      where: {
+        tenantId: member.tenantId,
+        memberId: member.memberId,
+        deletedAt: null,
+        isDefault: true,
+      },
+      data: {
+        isDefault: false,
+      },
+    });
   }
+
+  private async hasAddress(member: CurrentMemberPayload) {
+    const count = await this.prisma.ecMemberAddress.count({
+      where: {
+        tenantId: member.tenantId,
+        memberId: member.memberId,
+        deletedAt: null,
+      },
+    });
+    return count > 0;
+  }
+}
+```
+
+### 收藏和积分也是 Prisma
+
+```ts
+async addFavorite(member: CurrentMemberPayload, productId: string) {
+  const tenantId = member.tenantId;
+  const parsedProductId = this.parseBigInt(productId, '商品ID格式错误');
+  const product = await this.prisma.ecProduct.findFirst({
+    where: {
+      id: parsedProductId,
+      tenantId,
+      deletedAt: null,
+    },
+    include: {
+      category: true,
+      brand: true,
+      skus: true,
+    },
+  });
+  if (!product) {
+    throw new NotFoundException('商品不存在');
+  }
+
+  const existing = await this.prisma.ecMemberFavorite.findFirst({
+    where: {
+      tenantId,
+      memberId: member.memberId,
+      productId: parsedProductId,
+      deletedAt: null,
+    },
+    include: {
+      product: {
+        include: {
+          category: true,
+          brand: true,
+          skus: true,
+        },
+      },
+    },
+  });
+  if (existing) {
+    return this.toFavorite(existing);
+  }
+
+  await this.prisma.ecMemberFavorite.deleteMany({
+    where: {
+      tenantId,
+      memberId: member.memberId,
+      productId: parsedProductId,
+    },
+  });
+
+  const favorite = await this.prisma.ecMemberFavorite.create({
+    data: {
+      tenantId,
+      memberId: member.memberId,
+      productId: parsedProductId,
+    },
+    include: {
+      product: {
+        include: {
+          category: true,
+          brand: true,
+          skus: true,
+        },
+      },
+    },
+  });
+
+  return this.toFavorite(favorite);
+}
+
+async listMemberPoints(member: CurrentMemberPayload, query: MemberPointsQueryDto = {}) {
+  const page = query.page || 1;
+  const pageSize = query.pageSize || 20;
+  const where = {
+    tenantId: member.tenantId,
+    memberId: member.memberId,
+    deletedAt: null,
+  };
+
+  const [items, total] = await Promise.all([
+    this.prisma.ecMemberPointsLog.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    }),
+    this.prisma.ecMemberPointsLog.count({ where }),
+  ]);
+
+  return {
+    items: items.map((item) => this.toPointLog(item)),
+    page,
+    pageSize,
+    total,
+  };
 }
 ```
 
@@ -825,14 +758,14 @@ export class MemberRepository {
 
 - 一个会员同时只能有一个默认地址。
 - 如果不清空，后面下单取默认地址会变得不确定。
-- 真实数据库里应该用事务保证“清空旧默认 + 设置新默认”一起成功。
+- 当前项目用 `prisma.$transaction` 保证“清空旧默认 + 设置新默认”一起成功。
 
 为什么收藏接口重复收藏直接返回已有记录：
 
 - 收藏按钮可能被用户连点。
 - 前端也可能重复请求。
 - 收藏是天然幂等操作，重复收藏不应该报错影响体验。
-- 真实数据库里还要加唯一索引：`tenantId + memberId + productId`。
+- 当前项目先查 `ec_member_favorite`，存在则直接返回；不存在再写入。
 
 为什么积分增加时要同时写流水：
 
@@ -966,83 +899,70 @@ export class WechatMiniappGateway {
 ### `auth.service.ts`
 
 ```ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { MiniappLoginDto } from './dto/miniapp-login.dto';
 import { BindPhoneDto } from './dto/bind-phone.dto';
-import { WechatMiniappGateway, WechatSession } from './wechat-miniapp.gateway';
-import { MemberRepository } from '../member/member.repository';
-import { CurrentMemberPayload } from '../member/member.types';
-
-type SessionStore = {
-  remember(scope: 'member', tenantId: string, actorId: string): Promise<void>;
-  has(scope: 'member', tenantId: string, actorId: string): Promise<boolean>;
-};
+import { CurrentMemberPayload } from '../../common/decorators/current-member.decorator';
+import { MarketingService } from '../marketing/marketing.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class AuthService {
-  private readonly defaultTenantId = '1';
-
   constructor(
     private readonly jwtService: JwtService,
-    private readonly memberRepository: MemberRepository,
-    private readonly wechatGateway: WechatMiniappGateway,
-    private readonly sessionStore: SessionStore,
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+    private readonly marketingService: MarketingService,
   ) {}
 
   async miniappMockLogin(dto: MiniappLoginDto) {
-    const session = await this.wechatGateway.mockCode2Session(dto.code);
-    return this.loginByWechatSession(session, dto);
+    return this.wechatLogin(dto, true);
   }
 
-  async wechatLogin(dto: MiniappLoginDto) {
-    const session = await this.wechatGateway.code2Session(dto.code);
-    return this.loginByWechatSession(session, dto);
-  }
+  async wechatLogin(dto: MiniappLoginDto, forceMock = false) {
+    const tenant = await this.getDefaultTenant();
+    const session = await this.resolveWechatSession(dto, forceMock);
+    const existingIdentity = await this.prisma.ecMemberWechat.findFirst({
+      where: {
+        tenantId: tenant.id,
+        deletedAt: null,
+        OR: [
+          { openid: session.openid },
+          ...(session.unionid ? [{ unionid: session.unionid }] : []),
+        ],
+      },
+      include: {
+        member: true,
+      },
+    });
 
-  async bindPhone(current: CurrentMemberPayload, dto: BindPhoneDto) {
-    const member = await this.memberRepository.bindPhone(
-      current.tenantId,
-      current.memberId,
-      dto.phone,
-    );
+    const now = new Date();
+    let member = existingIdentity?.member;
+    let isNewMember = false;
 
-    return this.toMemberProfile(member);
-  }
-
-  private async loginByWechatSession(session: WechatSession, dto: MiniappLoginDto) {
-    const tenantId = this.defaultTenantId;
-    let identity = await this.memberRepository.findWechatIdentity(tenantId, session.openid);
-    let member = identity
-      ? await this.memberRepository.findMemberById(tenantId, identity.memberId)
-      : undefined;
-
-    if (!member) {
-      member = await this.memberRepository.createMember({
-        tenantId,
-        nickname: dto.nickname,
-        avatarUrl: dto.avatarUrl,
+    if (!member || member.deletedAt) {
+      member = await this.prisma.ecMember.create({
+        data: {
+          tenantId: tenant.id,
+          nickname: dto.nickname || '微信用户',
+          avatarUrl: dto.avatarUrl || null,
+          status: 'enabled',
+          lastLoginAt: now,
+        },
       });
-
-      identity = await this.memberRepository.createWechatIdentity({
-        tenantId,
-        memberId: member.id,
-        openid: session.openid,
-        unionid: session.unionid,
-        sessionKey: session.sessionKey,
-      });
-
-      await this.memberRepository.addPoints({
-        tenantId,
-        memberId: member.id,
-        bizType: 'register',
-        points: 10,
-        remark: '新会员注册赠送积分',
-      });
+      isNewMember = true;
     } else {
-      member = await this.memberRepository.updateMemberProfile(tenantId, member.id, {
-        nickname: member.nickname ? undefined : dto.nickname,
-        avatarUrl: member.avatarUrl ? undefined : dto.avatarUrl,
+      await this.prisma.ecMember.update({
+        where: {
+          id: member.id,
+        },
+        data: {
+          lastLoginAt: now,
+          nickname: dto.nickname && !member.nickname ? dto.nickname : member.nickname || undefined,
+          avatarUrl: dto.avatarUrl && !member.avatarUrl ? dto.avatarUrl : member.avatarUrl || undefined,
+        },
       });
     }
 
@@ -1050,50 +970,82 @@ export class AuthService {
       throw new UnauthorizedException('会员已被禁用');
     }
 
-    member = await this.memberRepository.touchMemberLogin(tenantId, member.id);
-    return this.issueMemberToken({
-      tenantId,
-      memberId: member.id,
-      openid: identity?.openid ?? session.openid,
+    await this.prisma.ecMemberWechat.upsert({
+      where: {
+        tenantId_openid: {
+          tenantId: tenant.id,
+          openid: session.openid,
+        },
+      },
+      create: {
+        tenantId: tenant.id,
+        memberId: member.id,
+        openid: session.openid,
+        unionid: session.unionid || null,
+        sessionKeyHash: this.hashValue(session.sessionKey),
+        lastLoginAt: now,
+      },
+      update: {
+        memberId: member.id,
+        unionid: session.unionid || null,
+        sessionKeyHash: this.hashValue(session.sessionKey),
+        lastLoginAt: now,
+        deletedAt: null,
+      },
     });
-  }
 
-  private async issueMemberToken(payload: CurrentMemberPayload) {
-    const accessToken = await this.jwtService.signAsync({
-      sub: payload.memberId,
-      tenantId: payload.tenantId,
+    if (isNewMember) {
+      await this.marketingService.issueStarterCoupons(tenant.id, member.id);
+      await this.marketingService.issueStarterPoints(tenant.id, member.id);
+    }
+
+    const token = await this.jwtService.signAsync({
+      sub: member.id.toString(),
+      tenantId: tenant.id.toString(),
+      openid: session.openid,
       type: 'member',
-      openid: payload.openid,
+    });
+    await this.redisService.rememberLoginSession({
+      scope: 'member',
+      tenantId: tenant.id.toString(),
+      actorId: member.id.toString(),
+      token,
+      ttlSeconds: this.resolveJwtTtlSeconds(),
     });
 
-    await this.sessionStore.remember('member', payload.tenantId, payload.memberId);
-
-    const member = await this.memberRepository.findMemberById(
-      payload.tenantId,
-      payload.memberId,
-    );
-
     return {
-      accessToken,
-      tokenType: 'Bearer',
-      member: member ? this.toMemberProfile(member) : undefined,
+      token,
+      member: await this.getProfile({
+        memberId: member.id,
+        tenantId: tenant.id,
+        openid: session.openid,
+      }),
     };
   }
 
-  private toMemberProfile(member: {
-    id: string;
-    nickname?: string;
-    avatarUrl?: string;
-    phone?: string;
-    points: number;
-  }) {
-    return {
-      id: member.id,
-      nickname: member.nickname ?? '',
-      avatarUrl: member.avatarUrl ?? '',
-      phone: member.phone ?? '',
-      points: member.points,
-    };
+  async bindPhone(member: CurrentMemberPayload, dto: BindPhoneDto) {
+    const currentMember = await this.prisma.ecMember.findFirst({
+      where: {
+        tenantId: member.tenantId,
+        id: member.memberId,
+        deletedAt: null,
+      },
+    });
+    if (!currentMember) {
+      throw new NotFoundException('会员不存在');
+    }
+
+    const phone = await this.resolveWechatPhone(dto);
+    const updated = await this.prisma.ecMember.update({
+      where: {
+        id: currentMember.id,
+      },
+      data: {
+        phone,
+      },
+    });
+
+    return this.toMemberProfile(updated);
   }
 }
 ```
@@ -1114,7 +1066,7 @@ export class AuthService {
 
 - 前端不能决定是否赠送积分。
 - 服务端可以保证只在新会员创建时赠送一次。
-- 后面营销模块也可以复用积分流水设计。
+- 当前项目新会员会调用 `MarketingService.issueStarterCoupons()` 和 `issueStarterPoints()`。
 
 ## Controller 暴露登录接口
 
@@ -1290,185 +1242,298 @@ export class MemberAuthGuard implements CanActivate {
 ### `member.service.ts`
 
 ```ts
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { MemberRepository } from './member.repository';
-import { CurrentMemberPayload } from './member.types';
-import { AddressMutationDto } from './dto/address-mutation.dto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { CurrentMemberPayload } from '../../common/decorators/current-member.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 import { MemberFavoriteQueryDto } from './dto/member-favorite-query.dto';
 import { MemberPointsQueryDto } from './dto/member-points-query.dto';
 import { MemberQueryDto } from './dto/member-query.dto';
 
-type CatalogReader = {
-  findVisibleProduct(productId: string): Promise<{
-    id: string;
-    title: string;
-    mainImageUrl?: string;
-    minPrice?: number;
-  } | null>;
-};
-
 @Injectable()
 export class MemberService {
-  constructor(
-    private readonly memberRepository: MemberRepository,
-    private readonly catalogReader: CatalogReader,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async getProfile(current: CurrentMemberPayload) {
-    const member = await this.memberRepository.findMemberById(
-      current.tenantId,
-      current.memberId,
-    );
-
-    if (!member) {
+  async getProfile(member: CurrentMemberPayload) {
+    const profile = await this.prisma.ecMember.findFirst({
+      where: {
+        tenantId: member.tenantId,
+        id: member.memberId,
+        deletedAt: null,
+      },
+    });
+    if (!profile) {
       throw new NotFoundException('会员不存在');
     }
 
-    const addresses = await this.memberRepository.listAddresses(
-      current.tenantId,
-      current.memberId,
-    );
-
-    const favorites = await this.memberRepository.listFavorites(
-      current.tenantId,
-      current.memberId,
-      1,
-      1,
-    );
+    const [couponCount, availableCouponCount, addressCount, favoriteCount] =
+      await Promise.all([
+        this.prisma.mkCoupon.count({
+          where: {
+            tenantId: member.tenantId,
+            memberId: member.memberId,
+            deletedAt: null,
+          },
+        }),
+        this.prisma.mkCoupon.count({
+          where: {
+            tenantId: member.tenantId,
+            memberId: member.memberId,
+            deletedAt: null,
+            status: 'available',
+          },
+        }),
+        this.prisma.ecMemberAddress.count({
+          where: {
+            tenantId: member.tenantId,
+            memberId: member.memberId,
+            deletedAt: null,
+          },
+        }),
+        this.prisma.ecMemberFavorite.count({
+          where: {
+            tenantId: member.tenantId,
+            memberId: member.memberId,
+            deletedAt: null,
+            product: {
+              deletedAt: null,
+            },
+          },
+        }),
+      ]);
 
     return {
-      id: member.id,
-      nickname: member.nickname ?? '',
-      avatarUrl: member.avatarUrl ?? '',
-      phone: member.phone ?? '',
-      points: member.points,
-      status: member.status,
-      lastLoginAt: member.lastLoginAt?.toISOString() ?? null,
-      addressCount: addresses.length,
-      favoriteCount: favorites.total,
+      id: profile.id.toString(),
+      tenantId: profile.tenantId.toString(),
+      nickname: profile.nickname || '',
+      avatarUrl: profile.avatarUrl || '',
+      phone: profile.phone || '',
+      points: profile.points,
+      status: profile.status,
+      lastLoginAt: profile.lastLoginAt?.toISOString() || null,
+      couponCount,
+      availableCouponCount,
+      addressCount,
+      favoriteCount,
     };
   }
 
-  async listAddresses(current: CurrentMemberPayload) {
-    return this.memberRepository.listAddresses(current.tenantId, current.memberId);
-  }
-
-  async createAddress(current: CurrentMemberPayload, dto: AddressMutationDto) {
-    return this.memberRepository.createAddress(current.tenantId, current.memberId, dto);
-  }
-
-  async updateAddress(
-    current: CurrentMemberPayload,
-    addressId: string,
-    dto: AddressMutationDto,
-  ) {
-    return this.memberRepository.updateAddress(
-      current.tenantId,
-      current.memberId,
-      addressId,
-      dto,
-    );
-  }
-
-  async setDefaultAddress(current: CurrentMemberPayload, addressId: string) {
-    return this.memberRepository.setDefaultAddress(
-      current.tenantId,
-      current.memberId,
-      addressId,
-    );
-  }
-
-  async deleteAddress(current: CurrentMemberPayload, addressId: string) {
-    return this.memberRepository.deleteAddress(
-      current.tenantId,
-      current.memberId,
-      addressId,
-    );
-  }
-
-  async addFavorite(current: CurrentMemberPayload, productId: string) {
-    const product = await this.catalogReader.findVisibleProduct(productId);
+  async addFavorite(member: CurrentMemberPayload, productId: string) {
+    const tenantId = member.tenantId;
+    const parsedProductId = BigInt(productId);
+    const product = await this.prisma.ecProduct.findFirst({
+      where: {
+        id: parsedProductId,
+        tenantId,
+        deletedAt: null,
+      },
+      include: {
+        category: true,
+        brand: true,
+        skus: true,
+      },
+    });
     if (!product) {
-      throw new BadRequestException('商品不存在或未上架');
+      throw new NotFoundException('商品不存在');
     }
 
-    const favorite = await this.memberRepository.addFavorite(
-      current.tenantId,
-      current.memberId,
-      productId,
-    );
-
-    return {
-      id: favorite.id,
-      product,
-      favoriteAt: favorite.createdAt.toISOString(),
-    };
-  }
-
-  async removeFavorite(current: CurrentMemberPayload, productId: string) {
-    return this.memberRepository.removeFavorite(
-      current.tenantId,
-      current.memberId,
-      productId,
-    );
-  }
-
-  async listFavorites(current: CurrentMemberPayload, query: MemberFavoriteQueryDto) {
-    const result = await this.memberRepository.listFavorites(
-      current.tenantId,
-      current.memberId,
-      query.page,
-      query.pageSize,
-    );
-
-    const items = await Promise.all(
-      result.items.map(async (favorite) => {
-        const product = await this.catalogReader.findVisibleProduct(favorite.productId);
-        return {
-          id: favorite.id,
-          productId: favorite.productId,
-          product,
-          favoriteAt: favorite.createdAt.toISOString(),
-        };
-      }),
-    );
-
-    return {
-      total: result.total,
-      items,
-    };
-  }
-
-  async listMemberPoints(current: CurrentMemberPayload, query: MemberPointsQueryDto) {
-    return this.memberRepository.listPointsLogs(
-      current.tenantId,
-      current.memberId,
-      query,
-    );
-  }
-
-  async adminListMembers(query: MemberQueryDto) {
-    return this.memberRepository.listMembers(query);
-  }
-
-  async adminMemberDetail(memberId: string) {
-    const tenantId = '1';
-    const member = await this.memberRepository.findMemberById(tenantId, memberId);
-    if (!member) {
-      throw new NotFoundException('会员不存在');
+    const existing = await this.prisma.ecMemberFavorite.findFirst({
+      where: {
+        tenantId,
+        memberId: member.memberId,
+        productId: parsedProductId,
+        deletedAt: null,
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+            skus: true,
+          },
+        },
+      },
+    });
+    if (existing) {
+      return this.toFavorite(existing);
     }
 
-    const addresses = await this.memberRepository.listAddresses(tenantId, memberId);
-    const points = await this.memberRepository.listPointsLogs(tenantId, memberId, {
-      page: 1,
-      pageSize: 10,
+    const favorite = await this.prisma.ecMemberFavorite.create({
+      data: {
+        tenantId,
+        memberId: member.memberId,
+        productId: parsedProductId,
+      },
+      include: {
+        product: {
+          include: {
+            category: true,
+            brand: true,
+            skus: true,
+          },
+        },
+      },
     });
 
-    return {
-      ...member,
-      addresses,
-      recentPoints: points.items,
+    return this.toFavorite(favorite);
+  }
+
+  async listFavorites(member: CurrentMemberPayload, query: MemberFavoriteQueryDto = {}) {
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const where: Prisma.EcMemberFavoriteWhereInput = {
+      tenantId: member.tenantId,
+      memberId: member.memberId,
+      deletedAt: null,
+      product: {
+        deletedAt: null,
+      },
     };
+
+    const [items, total] = await Promise.all([
+      this.prisma.ecMemberFavorite.findMany({
+        where,
+        include: {
+          product: {
+            include: {
+              category: true,
+              brand: true,
+              skus: true,
+            },
+          },
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+      }),
+      this.prisma.ecMemberFavorite.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toFavorite(item)),
+      page,
+      pageSize,
+      total,
+    };
+  }
+
+  async listMemberPoints(member: CurrentMemberPayload, query: MemberPointsQueryDto = {}) {
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const where = {
+      tenantId: member.tenantId,
+      memberId: member.memberId,
+      deletedAt: null,
+    };
+
+    const [items, total] = await Promise.all([
+      this.prisma.ecMemberPointsLog.findMany({
+        where,
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.ecMemberPointsLog.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toPointLog(item)),
+      page,
+      pageSize,
+      total,
+    };
+  }
+
+  async adminListMembers(query: MemberQueryDto = {}) {
+    const tenantId = await this.getDefaultTenantId();
+    const page = query.page || 1;
+    const pageSize = query.pageSize || 20;
+    const where: Prisma.EcMemberWhereInput = {
+      tenantId,
+      deletedAt: null,
+    };
+
+    if (query.keyword) {
+      where.OR = [
+        { nickname: { contains: query.keyword } },
+        { phone: { contains: query.keyword } },
+      ];
+    }
+    if (query.phone) {
+      where.phone = { contains: query.phone };
+    }
+    if (query.status) {
+      where.status = query.status;
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.ecMember.findMany({
+        where,
+        include: {
+          _count: {
+            select: {
+              addresses: true,
+              orders: true,
+              aftersales: true,
+              wechatIdentities: true,
+              favorites: true,
+            },
+          },
+        },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      this.prisma.ecMember.count({ where }),
+    ]);
+
+    return {
+      items: items.map((item) => this.toMemberListItem(item)),
+      page,
+      pageSize,
+      total,
+    };
+  }
+
+  async adminMemberDetail(id: string) {
+    const tenantId = await this.getDefaultTenantId();
+    const member = await this.prisma.ecMember.findFirst({
+      where: {
+        id: BigInt(id),
+        tenantId,
+        deletedAt: null,
+      },
+      include: {
+        addresses: {
+          where: { deletedAt: null },
+          orderBy: [
+            { isDefault: 'desc' },
+            { updatedAt: 'desc' },
+          ],
+        },
+        pointsLogs: {
+          where: { deletedAt: null },
+          orderBy: { createdAt: 'desc' },
+          take: 20,
+        },
+        wechatIdentities: {
+          where: { deletedAt: null },
+          orderBy: { lastLoginAt: 'desc' },
+        },
+      },
+    });
+    if (!member) {
+      throw new NotFoundException('会员不存在');
+    }
+
+    return this.toMemberDetail(member);
   }
 }
 ```
@@ -1479,11 +1544,11 @@ export class MemberService {
 - 小程序用户不应该收藏未上架商品。
 - 后面订单也必须复用类似规则，不能购买未上架 SKU。
 
-为什么 `MemberService` 依赖 `CatalogReader`，而不是直接读商品数组：
+为什么 `MemberService` 直接查商品表：
 
-- 会员模块不应该知道商品模块内部怎么存。
-- 只依赖一个“读取商品摘要”的接口，降低模块耦合。
-- 后面商品模块从内存换成数据库、搜索服务时，会员模块不用大改。
+- 当前项目已经没有商品数组，收藏商品时直接通过 Prisma 查 `ec_product`。
+- 查询收藏列表时带上 `category`、`brand`、`skus`，返回商品摘要给小程序。
+- 如果后面商品搜索换成 Elasticsearch，也应保持会员接口返回结构稳定。
 
 为什么后台查看会员也放在 `MemberService`：
 
@@ -1645,7 +1710,8 @@ export class AdminMemberController {
 
 ```ts
 import { Module } from '@nestjs/common';
-import { MemberRepository } from './member.repository';
+import { JwtModule } from '@nestjs/jwt';
+import { MemberAuthGuard } from '../../common/guards/member-auth.guard';
 import { MemberService } from './member.service';
 import {
   AdminMemberController,
@@ -1661,8 +1727,8 @@ import {
     MemberFavoriteController,
     AdminMemberController,
   ],
-  providers: [MemberRepository, MemberService],
-  exports: [MemberRepository, MemberService],
+  providers: [MemberService, MemberAuthGuard],
+  exports: [MemberService],
 })
 export class MemberModule {}
 ```
@@ -1672,30 +1738,46 @@ export class MemberModule {}
 ```ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
-import { MemberModule } from '../member/member.module';
+import type { JwtModuleOptions } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MemberAuthGuard } from '../../common/guards/member-auth.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { WechatMiniappGateway } from './wechat-miniapp.gateway';
+import { MarketingModule } from '../marketing/marketing.module';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: 'dev-access-secret',
-      signOptions: { expiresIn: '2h' },
+    MarketingModule,
+    RedisModule,
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const options = {
+          secret: configService.get<string>('jwt.accessSecret') || 'dev-access-secret',
+          signOptions: {
+            expiresIn: configService.get<string>('jwt.accessExpiresIn') || '2h',
+          },
+        };
+
+        return options as JwtModuleOptions;
+      },
     }),
-    MemberModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, WechatMiniappGateway],
+  providers: [AuthService, MemberAuthGuard],
+  exports: [AuthService],
 })
 export class AuthModule {}
 ```
 
-为什么 `MemberModule` 要导出 `MemberService` 或 `MemberRepository`：
+为什么 `MemberModule` 只导出 `MemberService`：
 
-- `AuthService` 登录时要创建会员、绑定微信身份。
 - 后面订单模块要读取会员地址。
-- 后面营销模块要给会员发券、加积分。
+- 后台会员列表、地址、收藏都应该走 Service 的业务规则。
+- 当前项目没有 `MemberRepository`，会员数据由 `PrismaService` 统一读写 MySQL。
 
 真实项目里不要随便导出 Repository，优先导出 Service：
 
@@ -2033,11 +2115,11 @@ server/prisma/schema.prisma
 
 | 能力 | 简单版 | 真实项目 |
 | --- | --- | --- |
-| 数据保存 | 内存数组 | Prisma + MySQL |
-| 登录 session | 简化接口 | Redis 登录态 |
+| 数据保存 | Prisma + MySQL | 当前项目真实实现 |
+| 登录 session | Redis 登录态 | 当前项目真实实现 |
 | 微信登录 | mock + fetch 示例 | 配置化 mock/real |
 | 积分赠送 | 注册时简单赠送 | 营销模块统一发券发积分 |
-| 地址默认 | 内存顺序执行 | 数据库事务 |
-| 收藏防重复 | 内存判断 | 唯一索引 |
+| 地址默认 | 数据库事务 | 当前项目真实实现 |
+| 收藏防重复 | 唯一索引/条件查询 | 当前项目真实实现 |
 | 后台权限 | 示例 AdminAuthGuard | RBAC 权限点 |
 

@@ -36,7 +36,7 @@ POST   /api/admin/v1/system/menus
 审计日志：
 GET    /api/admin/v1/system/audit-logs
 ```
-继续使用内存仓储。真实 ERP 项目中，这些数据对应 MySQL 表：
+当前项目已经使用 MySQL + Prisma 保存这些系统管理数据，不再使用内存仓储。对应模型主要是：
 ```text
 sys_admin_user
 sys_role
@@ -44,10 +44,63 @@ sys_permission
 sys_menu
 sys_audit_log
 ```
-为什么先用内存：
-- 重点是理解 RBAC 和审计设计
-- 真实数据库会在后续 Prisma 章节深入
-- 先把业务关系讲清楚，再把存储替换成 MySQL
+
+真实代码位置：
+
+```text
+server/src/modules/system/system.service.ts
+server/src/common/guards/admin-auth.guard.ts
+server/src/common/interceptors/audit-log.interceptor.ts
+server/prisma/schema.prisma
+```
+
+例如后台用户列表不是读数组，而是通过 Prisma 分页查询：
+
+```ts
+async listUsers(query: SystemUserQueryDto = {}) {
+  const tenantId = await this.getDefaultTenantId();
+  const page = query.page || 1;
+  const pageSize = query.pageSize || 20;
+  const where: Prisma.SysAdminUserWhereInput = {
+    tenantId,
+    deletedAt: null,
+  };
+
+  if (query.keyword) {
+    where.OR = [
+      { username: { contains: query.keyword } },
+      { realName: { contains: query.keyword } },
+      { phone: { contains: query.keyword } },
+      { email: { contains: query.keyword } },
+    ];
+  }
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  const [items, total, roleMap] = await Promise.all([
+    this.prisma.sysAdminUser.findMany({
+      where,
+      include: { tenant: { select: { id: true, name: true, code: true } } },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+    this.prisma.sysAdminUser.count({ where }),
+    this.loadRoleMap(tenantId),
+  ]);
+
+  return {
+    items: items.map((item) => this.toUserRow(item, roleMap)),
+    page,
+    pageSize,
+    total,
+  };
+}
+```
+
+审计日志也不是写内存，而是由全局拦截器写 `sys_audit_log`。这样后台写操作能追溯到管理员、模块、目标 id、请求摘要和响应状态。
 
 ## 最终目录结构
 
@@ -1181,33 +1234,50 @@ return {
 ```ts
 import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { REQUIRED_PERMISSIONS_KEY } from '../decorators/require-permissions.decorator';
+import { RedisService } from '../../modules/redis/redis.service';
+import { AuthService } from '../../modules/auth/auth.service';
+import { ADMIN_PERMISSIONS_KEY } from '../decorators/admin-permissions.decorator';
 
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
   constructor(
-    private readonly jwtService: JwtService,
     private readonly authService: AuthService,
-    private readonly sessionService: SessionService,
+    private readonly redisService: RedisService,
     private readonly reflector: Reflector,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
 
-    // 这里省略第一章已经写过的 token、session、用户状态校验。
-    const adminUser = await this.resolveAdminUserFromToken(request);
+    const token = this.resolveBearerToken(request.headers?.authorization);
+    const payload = await this.verifyToken(token);
+
+    if (!(await this.redisService.hasLoginSession('admin', payload.tenantId, payload.sub))) {
+      throw new UnauthorizedException('登录态已失效，请重新登录');
+    }
+
+    const adminUser = await this.authService.getAdminUserForAccess({
+      adminId: BigInt(payload.sub),
+      tenantId: BigInt(payload.tenantId),
+      username: payload.username,
+    });
+    if (!adminUser) {
+      throw new UnauthorizedException('管理员不存在或已停用');
+    }
+
     const access = await this.authService.resolveAdminAccess(adminUser);
 
     request.admin = {
       adminId: adminUser.id,
+      tenantId: adminUser.tenantId,
       username: adminUser.username,
       realName: adminUser.realName,
+      tenantName: adminUser.tenant.name,
       ...access,
     };
 
     const requiredPermissions =
-      this.reflector.getAllAndOverride<string[]>(REQUIRED_PERMISSIONS_KEY, [
+      this.reflector.getAllAndOverride<string[]>(ADMIN_PERMISSIONS_KEY, [
         context.getHandler(),
         context.getClass(),
       ]) || [];
@@ -1479,10 +1549,8 @@ AdminAuthGuard 注入 AuthService + SystemService。
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
   constructor(
-    private readonly jwtService: JwtService,
     private readonly authService: AuthService,
-    private readonly sessionService: SessionService,
-    private readonly systemService: SystemService,
+    private readonly redisService: RedisService,
     private readonly reflector: Reflector,
   ) {}
 
@@ -1490,18 +1558,31 @@ export class AdminAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.resolveBearerToken(request.headers?.authorization);
     const payload = await this.verifyToken(token);
-    const adminUser = await this.authService.getAdminForAccess({
-      adminId: payload.sub,
+
+    const sessionOk = await this.redisService.hasLoginSession(
+      'admin',
+      payload.tenantId,
+      payload.sub,
+    );
+    if (!sessionOk) {
+      throw new UnauthorizedException('登录态已失效，请重新登录');
+    }
+
+    const adminUser = await this.authService.getAdminUserForAccess({
+      adminId: BigInt(payload.sub),
+      tenantId: BigInt(payload.tenantId),
+      username: payload.username,
     });
 
     if (!adminUser) {
-      throw new UnauthorizedException('admin disabled or not found');
+      throw new UnauthorizedException('管理员不存在或已停用');
     }
 
-    const access = await this.systemService.resolveAdminAccess(adminUser);
+    const access = await this.authService.resolveAdminAccess(adminUser);
 
     request.admin = {
       adminId: adminUser.id,
+      tenantId: adminUser.tenantId,
       username: adminUser.username,
       realName: adminUser.realName,
       ...access,
@@ -1515,10 +1596,10 @@ export class AdminAuthGuard implements CanActivate {
 
 为什么这样更好：
 
-- Auth 只管身份。
-- System 只管权限。
-- Guard 组合身份和权限。
-- 模块职责更清楚。
+- Guard 组合 JWT 验签、Redis 登录态、数据库用户状态和权限校验。
+- AuthService 内部通过 Prisma 读取 `sys_admin_user`、角色、权限、菜单。
+- Redis 只管“这次登录是否还有效”，不保存后台用户主数据。
+- 权限最终以 MySQL 当前状态为准。
 
 ## 初始化默认权限数据
 
@@ -1716,11 +1797,11 @@ roles
 
 | 简易版 | 真实 ERP 项目 |
 | --- | --- |
-| 内存数组保存用户角色权限 | MySQL + Prisma |
+| MySQL + Prisma 保存用户角色权限 | 当前项目真实实现 |
 | 简化 roleCodes/permissionCodes 数组 | JSON 字段或后续中间表 |
 | 手动 seed 方法 | `prisma/seed.ts` |
 | 装饰器声明权限 | 项目中也支持按路由推导默认权限 |
-| 审计写内存 | 审计写 `sys_audit_log` |
+| 审计写 `sys_audit_log` | 当前项目真实实现 |
 | 没有租户 | 真实项目所有核心表带 `tenant_id` |
 
 真实 ERP 项目里对应文件：

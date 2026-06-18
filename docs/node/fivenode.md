@@ -368,162 +368,79 @@ export class CatalogService implements CatalogReader {
 }
 ```
 
-## 实现购物车仓储
+## 购物车存储：Prisma + MySQL
 
-### `cart.repository.ts`
+当前项目没有 `cart.repository.ts`。购物车直接由 `CartService` 注入 `PrismaService` 读写 `ec_cart_item`，同一个会员同一个 SKU 通过数据库唯一键合并。
 
-```ts
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { CartItem } from './cart.types';
+### 真实唯一键
 
-@Injectable()
-export class CartRepository {
-  private items: CartItem[] = [];
+```prisma
+model EcCartItem {
+  tenantId  BigInt @map("tenant_id")
+  memberId  BigInt @map("member_id")
+  skuId     BigInt @map("sku_id")
+  qty       Decimal
+  checked   Boolean
+  deletedAt DateTime? @map("deleted_at")
 
-  async listByMember(tenantId: string, memberId: string) {
-    return this.items
-      .filter(
-        (item) =>
-          item.tenantId === tenantId &&
-          item.memberId === memberId &&
-          !item.deletedAt,
-      )
-      .sort((a, b) => b.addedAt.getTime() - a.addedAt.getTime());
-  }
-
-  async findBySku(tenantId: string, memberId: string, skuId: string) {
-    return this.items.find(
-      (item) =>
-        item.tenantId === tenantId &&
-        item.memberId === memberId &&
-        item.skuId === skuId,
-    );
-  }
-
-  async getMemberItem(tenantId: string, memberId: string, itemId: string) {
-    const item = this.items.find(
-      (row) =>
-        row.id === itemId &&
-        row.tenantId === tenantId &&
-        row.memberId === memberId &&
-        !row.deletedAt,
-    );
-
-    if (!item) {
-      throw new NotFoundException('购物车商品不存在');
-    }
-
-    return item;
-  }
-
-  async create(input: {
-    tenantId: string;
-    memberId: string;
-    productId: string;
-    skuId: string;
-    qty: number;
-  }) {
-    const now = new Date();
-    const item: CartItem = {
-      id: randomUUID(),
-      tenantId: input.tenantId,
-      memberId: input.memberId,
-      productId: input.productId,
-      skuId: input.skuId,
-      qty: input.qty,
-      checked: true,
-      addedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.items.push(item);
-    return item;
-  }
-
-  async restoreOrIncrease(
-    item: CartItem,
-    input: { productId: string; qty: number },
-  ) {
-    item.productId = input.productId;
-    item.qty = item.deletedAt ? input.qty : item.qty + input.qty;
-    item.checked = true;
-    item.deletedAt = undefined;
-    item.addedAt = new Date();
-    item.updatedAt = new Date();
-    return item;
-  }
-
-  async update(
-    item: CartItem,
-    patch: {
-      qty?: number;
-      checked?: boolean;
-    },
-  ) {
-    item.qty = patch.qty ?? item.qty;
-    item.checked = patch.checked ?? item.checked;
-    item.updatedAt = new Date();
-    return item;
-  }
-
-  async softDelete(item: CartItem) {
-    item.deletedAt = new Date();
-    item.updatedAt = new Date();
-    return { success: true };
-  }
+  @@unique([tenantId, memberId, skuId], map: "uk_cart_member_sku")
+  @@map("ec_cart_item")
 }
 ```
 
-为什么仓储里有 `restoreOrIncrease`：
+为什么加购要围绕这个唯一键：
 
 - 用户删除过某 SKU 后重新加购，可以恢复原记录。
 - 用户重复加购同一 SKU，要累加数量。
 - 这两个行为都围绕“同一个会员同一个 SKU 只有一行”。
-
-真实数据库版怎么保证不重复：
-
-```text
-唯一索引：tenant_id + member_id + sku_id
-```
-
-并发情况下，业务层先查仍然不够，还要靠数据库唯一约束兜底。
+- 并发情况下，业务层先查仍然不够，还要靠数据库唯一约束兜底。
 
 ## 实现 CartService
 
 ### `cart.service.ts`
 
 ```ts
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { CurrentMemberPayload } from '../../common/decorators/current-member.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 import { AddCartItemDto } from './dto/add-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { CartRepository } from './cart.repository';
-import { CartItem, CartItemView, CurrentMemberPayload, ProductSkuSnapshot } from './cart.types';
-import { CatalogReader } from '../catalog/catalog-reader';
 
 @Injectable()
 export class CartService {
-  constructor(
-    private readonly cartRepository: CartRepository,
-    private readonly catalogReader: CatalogReader,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getCart(member: CurrentMemberPayload) {
-    const items = await this.cartRepository.listByMember(
-      member.tenantId,
-      member.memberId,
-    );
+    const items = await this.prisma.ecCartItem.findMany({
+      where: {
+        tenantId: member.tenantId,
+        memberId: member.memberId,
+        deletedAt: null,
+      },
+      include: {
+        product: true,
+        sku: {
+          include: {
+            balances: {
+              where: {
+                deletedAt: null,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        addedAt: 'desc',
+      },
+    });
 
-    const mappedItems = await Promise.all(
-      items.map((item) => this.toCartItemView(member.tenantId, item)),
-    );
-
+    const mappedItems = items.map((item) => this.toCartItem(item));
     const checkedItems = mappedItems.filter((item) => item.checked);
     const totalQty = mappedItems.reduce((sum, item) => sum + item.qty, 0);
     const checkedQty = checkedItems.reduce((sum, item) => sum + item.qty, 0);
     const checkedAmount = checkedItems.reduce(
-      (sum, item) => sum + Number(item.goodsAmount),
+      (sum, item) => sum + item.qty * Number(item.salePrice),
       0,
     );
 
@@ -536,35 +453,81 @@ export class CartService {
   }
 
   async addItem(member: CurrentMemberPayload, dto: AddCartItemDto) {
-    const sku = await this.getBuyableSku(member.tenantId, dto.skuId);
+    const sku = await this.prisma.ecSku.findFirst({
+      where: {
+        id: BigInt(dto.skuId),
+        tenantId: member.tenantId,
+        deletedAt: null,
+        status: 'enabled',
+        product: {
+          deletedAt: null,
+          saleStatus: 'on_sale',
+        },
+      },
+      include: {
+        product: true,
+        balances: {
+          where: {
+            deletedAt: null,
+          },
+        },
+      },
+    });
+    if (!sku) {
+      throw new NotFoundException('SKU 不存在或未上架');
+    }
 
-    if (sku.stockQty < dto.qty) {
+    const availableQty = sku.balances.reduce(
+      (sum, balance) => sum + Number(balance.availableQty),
+      0,
+    );
+    if (availableQty < dto.qty) {
       throw new BadRequestException('库存不足');
     }
 
-    const existing = await this.cartRepository.findBySku(
-      member.tenantId,
-      member.memberId,
-      dto.skuId,
-    );
+    const existingItem = await this.prisma.ecCartItem.findUnique({
+      where: {
+        tenantId_memberId_skuId: {
+          tenantId: member.tenantId,
+          memberId: member.memberId,
+          skuId: sku.id,
+        },
+      },
+    });
 
-    if (existing) {
-      const nextQty = existing.deletedAt ? dto.qty : existing.qty + dto.qty;
-      if (sku.stockQty < nextQty) {
-        throw new BadRequestException('库存不足');
-      }
-
-      await this.cartRepository.restoreOrIncrease(existing, {
-        productId: sku.productId,
-        qty: dto.qty,
+    if (existingItem && !existingItem.deletedAt) {
+      await this.prisma.ecCartItem.update({
+        where: {
+          id: existingItem.id,
+        },
+        data: {
+          qty: new Prisma.Decimal(existingItem.qty).plus(dto.qty),
+          checked: true,
+        },
+      });
+    } else if (existingItem) {
+      await this.prisma.ecCartItem.update({
+        where: {
+          id: existingItem.id,
+        },
+        data: {
+          productId: sku.productId,
+          qty: dto.qty,
+          checked: true,
+          deletedAt: null,
+          addedAt: new Date(),
+        },
       });
     } else {
-      await this.cartRepository.create({
-        tenantId: member.tenantId,
-        memberId: member.memberId,
-        productId: sku.productId,
-        skuId: sku.skuId,
-        qty: dto.qty,
+      await this.prisma.ecCartItem.create({
+        data: {
+          tenantId: member.tenantId,
+          memberId: member.memberId,
+          productId: sku.productId,
+          skuId: sku.id,
+          qty: dto.qty,
+          checked: true,
+        },
       });
     }
 
@@ -573,106 +536,87 @@ export class CartService {
 
   async updateItem(
     member: CurrentMemberPayload,
-    cartItemId: string,
+    id: string,
     dto: UpdateCartItemDto,
   ) {
-    const item = await this.cartRepository.getMemberItem(
-      member.tenantId,
-      member.memberId,
-      cartItemId,
-    );
-
+    const item = await this.getMemberCartItem(member, id);
+    const data: Prisma.EcCartItemUpdateInput = {};
     if (dto.qty !== undefined) {
-      const sku = await this.getBuyableSku(member.tenantId, item.skuId);
-      if (sku.stockQty < dto.qty) {
-        throw new BadRequestException('库存不足');
-      }
+      data.qty = dto.qty;
+    }
+    if (dto.checked !== undefined) {
+      data.checked = dto.checked;
     }
 
-    await this.cartRepository.update(item, {
-      qty: dto.qty,
-      checked: dto.checked,
+    await this.prisma.ecCartItem.update({
+      where: {
+        id: item.id,
+      },
+      data,
     });
 
     return this.getCart(member);
   }
 
-  async deleteItem(member: CurrentMemberPayload, cartItemId: string) {
-    const item = await this.cartRepository.getMemberItem(
-      member.tenantId,
-      member.memberId,
-      cartItemId,
-    );
+  async deleteItem(member: CurrentMemberPayload, id: string) {
+    const item = await this.getMemberCartItem(member, id);
+    await this.prisma.ecCartItem.update({
+      where: {
+        id: item.id,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
 
-    await this.cartRepository.softDelete(item);
     return this.getCart(member);
   }
 
-  async getCheckedItems(member: CurrentMemberPayload) {
-    const items = await this.cartRepository.listByMember(
-      member.tenantId,
-      member.memberId,
+  private async getMemberCartItem(member: CurrentMemberPayload, id: string) {
+    const item = await this.prisma.ecCartItem.findFirst({
+      where: {
+        id: BigInt(id),
+        tenantId: member.tenantId,
+        memberId: member.memberId,
+        deletedAt: null,
+      },
+    });
+    if (!item) {
+      throw new NotFoundException('购物车商品不存在');
+    }
+    return item;
+  }
+
+  private toCartItem(item: Prisma.EcCartItemGetPayload<{
+    include: {
+      product: true;
+      sku: {
+        include: {
+          balances: true;
+        };
+      };
+    };
+  }>) {
+    const stockQty = item.sku.balances.reduce(
+      (sum, balance) => sum + Number(balance.availableQty),
+      0,
     );
 
-    return items.filter((item) => item.checked);
-  }
-
-  private async getBuyableSku(tenantId: string, skuId: string) {
-    const sku = await this.catalogReader.findSkuForCart(tenantId, skuId);
-
-    if (!sku) {
-      throw new BadRequestException('SKU 不存在');
-    }
-
-    if (sku.saleStatus !== 'on_sale' || sku.skuStatus !== 'enabled') {
-      throw new BadRequestException('商品未上架');
-    }
-
-    return sku;
-  }
-
-  private async toCartItemView(
-    tenantId: string,
-    item: CartItem,
-  ): Promise<CartItemView> {
-    const sku = await this.catalogReader.findSkuForCart(tenantId, item.skuId);
-
-    if (!sku) {
-      return {
-        id: item.id,
-        productId: item.productId,
-        skuId: item.skuId,
-        title: '商品不存在',
-        skuNo: '',
-        spec: {},
-        salePrice: '0.00',
-        qty: item.qty,
-        checked: false,
-        stockQty: 0,
-        goodsAmount: '0.00',
-        saleStatus: 'deleted',
-        skuStatus: 'deleted',
-      };
-    }
-
-    const goodsAmount = sku.salePrice * item.qty;
-
     return {
-      id: item.id,
-      productId: item.productId,
-      skuId: item.skuId,
-      title: sku.title,
-      subTitle: sku.subTitle,
-      imageUrl: sku.imageUrl,
-      skuNo: sku.skuNo,
-      spec: sku.spec,
-      salePrice: sku.salePrice.toFixed(2),
-      qty: item.qty,
+      id: item.id.toString(),
+      productId: item.productId.toString(),
+      skuId: item.skuId.toString(),
+      title: item.product.title,
+      subTitle: item.product.subTitle,
+      imageUrl: item.sku.imageUrl || item.product.mainImageUrl,
+      skuNo: item.sku.skuNo,
+      specJson: item.sku.specJson,
+      salePrice: Number(item.sku.salePrice).toFixed(2),
+      qty: Number(item.qty),
       checked: item.checked,
-      stockQty: sku.stockQty,
-      goodsAmount: goodsAmount.toFixed(2),
-      saleStatus: sku.saleStatus,
-      skuStatus: sku.skuStatus,
+      stockQty,
+      saleStatus: item.product.saleStatus,
+      skuStatus: item.sku.status,
     };
   }
 }
@@ -682,10 +626,13 @@ export class CartService {
 
 ```text
 加购前检查 SKU 是否存在
-  -> 检查商品是否上架
-  -> 检查 SKU 是否启用
+  -> 检查商品是否上架、SKU 是否启用
+  -> 汇总库存余额 availableQty
   -> 检查库存是否够
-  -> 同 SKU 已存在则累加数量
+  -> 按 tenantId_memberId_skuId 唯一键查购物车
+  -> 未删除则累加数量
+  -> 已软删除则恢复
+  -> 不存在则新建
 ```
 
 为什么购物车展示时还要重新查商品：
@@ -1276,15 +1223,15 @@ export class OrderController {
 
 ```ts
 import { Module } from '@nestjs/common';
-import { CatalogModule } from '../catalog/catalog.module';
+import { JwtModule } from '@nestjs/jwt';
+import { MemberAuthGuard } from '../../common/guards/member-auth.guard';
 import { CartController } from './cart.controller';
-import { CartRepository } from './cart.repository';
 import { CartService } from './cart.service';
 
 @Module({
-  imports: [CatalogModule],
+  imports: [JwtModule.register({})],
   controllers: [CartController],
-  providers: [CartRepository, CartService],
+  providers: [CartService, MemberAuthGuard],
   exports: [CartService],
 })
 export class CartModule {}
@@ -1294,7 +1241,7 @@ export class CartModule {}
 
 - `OrderModule` 需要读取已勾选购物车商品。
 - 不应该让订单模块直接读购物车表。
-- 通过 `CartService.getCheckedItems` 可以统一过滤当前会员、未删除、已勾选。
+- 当前项目订单创建会在 `OrderService` 内重新读取已勾选购物车，并再次校验商品、库存和价格。
 
 ### `order.module.ts`
 
@@ -1444,10 +1391,99 @@ server/prisma/schema.prisma
 
 | 能力 | 教学版 | 真实项目 |
 | --- | --- | --- |
-| 购物车存储 | 内存数组 | Prisma + MySQL |
+| 购物车存储 | Prisma + MySQL | 当前项目真实实现 |
 | SKU 库存 | 简化 `stockQty` | `ec_stock_balance` 多仓库存 |
-| 加购防重复 | 内存查找 | 唯一索引 `tenantId + memberId + skuId` |
+| 加购防重复 | 唯一索引 `tenantId + memberId + skuId` | 当前项目真实实现 |
 | 金额计算 | number + `toFixed` | Decimal |
 | 营销规则 | 活动价 + 优惠券 + 简单运费 | 促销、优惠券、运费模板 |
 | 订单预览 | 不落库 | 不落订单，但读取真实商品/库存/营销 |
 | 创建订单 | 下一章实现 | 事务创建订单、明细、地址、锁库存 |
+
+当前项目购物车真实代码在：
+
+```text
+server/src/modules/cart/cart.service.ts
+server/src/modules/order/order.service.ts
+server/prisma/schema.prisma
+```
+
+加购时不是写内存数组，而是先查 SKU，再用 `tenantId_memberId_skuId` 唯一键合并购物车：
+
+```ts
+async addItem(member: CurrentMemberPayload, dto: AddCartItemDto) {
+  const sku = await this.prisma.ecSku.findFirst({
+    where: {
+      id: BigInt(dto.skuId),
+      tenantId: member.tenantId,
+      deletedAt: null,
+      product: {
+        deletedAt: null,
+        saleStatus: 'on_sale',
+      },
+    },
+    include: {
+      product: true,
+    },
+  });
+
+  if (!sku) {
+    throw new NotFoundException('SKU不存在或已下架');
+  }
+
+  const existingItem = await this.prisma.ecCartItem.findUnique({
+    where: {
+      tenantId_memberId_skuId: {
+        tenantId: member.tenantId,
+        memberId: member.memberId,
+        skuId: sku.id,
+      },
+    },
+  });
+
+  if (existingItem && existingItem.deletedAt) {
+    await this.prisma.ecCartItem.update({
+      where: { id: existingItem.id },
+      data: {
+        qty: dto.qty,
+        checked: true,
+        deletedAt: null,
+      },
+    });
+  } else if (existingItem) {
+    await this.prisma.ecCartItem.update({
+      where: { id: existingItem.id },
+      data: {
+        qty: new Prisma.Decimal(existingItem.qty).plus(dto.qty),
+        checked: true,
+      },
+    });
+  } else {
+    await this.prisma.ecCartItem.create({
+      data: {
+        tenantId: member.tenantId,
+        memberId: member.memberId,
+        productId: sku.productId,
+        skuId: sku.id,
+        qty: dto.qty,
+        checked: true,
+      },
+    });
+  }
+
+  return this.getCart(member);
+}
+```
+
+订单预览也不是读前端金额，而是读取已勾选购物车、商品、SKU、库存余额和营销规则后重新计算：
+
+```ts
+async preview(member: CurrentMemberPayload, dto: PreviewOrderDto = {}) {
+  const cartItems = await this.getCheckedCartItems(member);
+  if (cartItems.length === 0) {
+    throw new BadRequestException('请选择要结算的商品');
+  }
+
+  const shopChannel = await this.getDefaultShopChannel(member.tenantId);
+  return this.buildPreview(member, shopChannel, cartItems, dto.couponId);
+}
+```

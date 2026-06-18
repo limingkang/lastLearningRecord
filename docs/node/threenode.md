@@ -46,7 +46,7 @@ POST   /api/admin/v1/search/products/:id/sync
 GET    /api/admin/v1/search/products
 ```
 
-本章继续用内存仓储。真实 ERP 项目中，对应表主要是：
+当前项目的商品中心已经使用 MySQL + Prisma 持久化，不再使用内存仓储。对应表主要是：
 
 ```text
 ec_category
@@ -56,6 +56,62 @@ ec_sku
 ec_product_image
 ec_shop_product
 ec_product_search_index
+```
+
+真实代码位置：
+
+```text
+server/src/modules/catalog/catalog.service.ts
+server/src/modules/search/search.service.ts
+server/prisma/schema.prisma
+```
+
+例如分类查询直接读 `ec_category`：
+
+```ts
+async getCategories(onlyEnabled = false) {
+  const tenantId = await this.getDefaultTenantId();
+  const categories = await this.prisma.ecCategory.findMany({
+    where: {
+      tenantId,
+      deletedAt: null,
+      ...(onlyEnabled ? { status: 'enabled' } : {}),
+    },
+    orderBy: [
+      { sortNo: 'asc' },
+      { id: 'asc' },
+    ],
+  });
+
+  return categories.map((category) => this.toCategoryRow(category));
+}
+```
+
+创建分类也是写数据库：
+
+```ts
+async createCategory(dto: CategoryMutationDto) {
+  const tenantId = await this.getDefaultTenantId();
+  const code = this.normalizeText(dto.code);
+  await this.ensureCategoryCodeAvailable(tenantId, code);
+  const parent = dto.parentId ? await this.getCategoryById(tenantId, dto.parentId) : null;
+
+  const category = await this.prisma.ecCategory.create({
+    data: {
+      tenantId,
+      parentId: parent?.id || null,
+      name: this.normalizeText(dto.name),
+      code,
+      level: parent ? parent.level + 1 : 1,
+      path: parent ? `${parent.path}/${code}` : code,
+      imageUrl: this.normalizeOptionalText(dto.imageUrl),
+      sortNo: dto.sortNo || 0,
+      status: dto.status || 'enabled',
+    },
+  });
+
+  return this.toCategoryRow(category);
+}
 ```
 
 ## 新增目录结构
@@ -1552,10 +1608,10 @@ GET /api/admin/v1/search/products?keyword=手机
 
 | 教学版 | 真实 ERP 项目 |
 | --- | --- |
-| 内存保存分类品牌商品 | MySQL + Prisma |
+| MySQL + Prisma 保存分类品牌商品 | 当前项目真实实现 |
 | SKU 里直接放 `stockQty` | 库存独立到 `ec_stock_balance` |
 | 更新商品整体替换 SKU | 真实项目要考虑 SKU 被订单引用 |
-| 搜索索引用内存数组 | 真实项目写 `ec_product_search_index` |
+| 搜索索引写 `ec_product_search_index` | 当前项目真实实现 |
 | 没有店铺商品关系 | 真实项目有 `ec_shop_product` |
 | 没有审核状态 | 真实项目可扩展 `audit_status` |
 

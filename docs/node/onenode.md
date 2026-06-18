@@ -432,260 +432,211 @@ export class LoginDto {
 - 太长可能造成无意义计算压力。
 - 真实项目可以加入更复杂密码策略。
 
-## 用户仓储
+## 用户存储：MySQL + Prisma
 
-真实 ERP 项目用 MySQL + Prisma 保存用户。为了聚焦登录鉴权，可以先用内存数组模拟数据库。后面学到 Prisma 后，再把这里替换成真实表。
+当前项目没有再用内存数组保存后台用户。后台账号保存在 MySQL 的 `sys_admin_user` 表中，通过 `PrismaService` 读写。
 
-### `user.repository.ts`
-
-```ts
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-
-export type AdminUser = {
-  id: string;
-  username: string;
-  passwordHash: string;
-  realName: string;
-  status: 'enabled' | 'disabled';
-  createdAt: Date;
-};
-
-@Injectable()
-export class UserRepository {
-  private users: AdminUser[] = [];
-  private nextId = 1;
-
-  async create(input: {
-    username: string;
-    passwordHash: string;
-    realName: string;
-  }) {
-    const existed = this.users.find((item) => item.username === input.username);
-    if (existed) {
-      throw new ConflictException('username already exists');
-    }
-
-    const user: AdminUser = {
-      id: String(this.nextId++),
-      username: input.username,
-      passwordHash: input.passwordHash,
-      realName: input.realName,
-      status: 'enabled',
-      createdAt: new Date(),
-    };
-
-    this.users.push(user);
-    return user;
-  }
-
-  async findByUsername(username: string) {
-    return this.users.find((item) => item.username === username) || null;
-  }
-
-  async findById(id: string) {
-    return this.users.find((item) => item.id === id) || null;
-  }
-
-  async getById(id: string) {
-    const user = await this.findById(id);
-    if (!user) {
-      throw new NotFoundException('user not found');
-    }
-    return user;
-  }
-}
-```
-
-为什么先用内存仓储：
-
-- 先理解分层、鉴权、JWT。
-- 不被数据库连接、迁移、Prisma 细节打断。
-- 仓储接口设计好后，后续替换成 Prisma 更自然。
-
-注意：
-
-- 内存数据重启会丢。
-- 不能用于生产。
-- 后面真实项目要用 `sys_admin_user` 表保存用户。
-
-## 登录态 Session Service
-
-纯 JWT 有一个问题：签发后到过期前默认都有效。后台系统需要能主动让 token 失效。我们先用内存 Map 模拟 Redis session。
-
-### `session.service.ts`
-
-```ts
-import { Injectable } from '@nestjs/common';
-
-type SessionRecord = {
-  token: string;
-  expiredAt: number;
-};
-
-@Injectable()
-export class SessionService {
-  private sessions = new Map<string, SessionRecord>();
-
-  remember(input: {
-    scope: 'admin';
-    actorId: string;
-    token: string;
-    ttlSeconds: number;
-  }) {
-    const key = this.buildKey(input.scope, input.actorId);
-    this.sessions.set(key, {
-      token: input.token,
-      expiredAt: Date.now() + input.ttlSeconds * 1000,
-    });
-  }
-
-  hasSession(scope: 'admin', actorId: string, token: string) {
-    const key = this.buildKey(scope, actorId);
-    const record = this.sessions.get(key);
-
-    if (!record) {
-      return false;
-    }
-
-    if (record.expiredAt < Date.now()) {
-      this.sessions.delete(key);
-      return false;
-    }
-
-    return record.token === token;
-  }
-
-  remove(scope: 'admin', actorId: string) {
-    this.sessions.delete(this.buildKey(scope, actorId));
-  }
-
-  private buildKey(scope: string, actorId: string) {
-    return `${scope}:${actorId}`;
-  }
-}
-```
-
-为什么 JWT 还要 session：
-
-- JWT 解决“请求是谁发的”。
-- session 解决“服务端现在还认不认可这个登录态”。
-- 员工离职、改密码、强制下线，都需要服务端可撤销。
-
-真实项目中：
+真实代码位置：
 
 ```text
-SessionService -> RedisService
-Map -> Redis key
-expiredAt -> Redis TTL
+server/src/modules/auth/auth.service.ts
+server/src/modules/system/system.service.ts
+server/prisma/schema.prisma
 ```
 
-## AuthService 注册和登录
-
-### `auth.service.ts`
+后台登录时，`AuthService.adminLogin()` 直接查询 `sysAdminUser`：
 
 ```ts
-import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import * as bcrypt from 'bcryptjs';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { SessionService } from './session.service';
-import { UserRepository } from './user.repository';
-
-export type AdminTokenPayload = {
-  sub: string;
-  username: string;
-  type: 'admin';
-};
-
-@Injectable()
-export class AuthService {
-  private readonly tokenTtlSeconds = 2 * 60 * 60;
-
-  constructor(
-    private readonly userRepository: UserRepository,
-    private readonly jwtService: JwtService,
-    private readonly sessionService: SessionService,
-  ) {}
-
-  async register(dto: RegisterDto) {
-    const passwordHash = await bcrypt.hash(dto.password, 10);
-
-    const user = await this.userRepository.create({
+async adminLogin(dto: AdminLoginDto) {
+  const user = await this.prisma.sysAdminUser.findFirst({
+    where: {
       username: dto.username,
-      realName: dto.realName,
-      passwordHash,
-    });
+      deletedAt: null,
+    },
+    include: {
+      tenant: true,
+    },
+  });
 
-    return {
-      id: user.id,
+  if (!user || user.status !== 'enabled') {
+    throw new UnauthorizedException('账号不存在或已停用');
+  }
+
+  const passwordMatched = await bcrypt.compare(dto.password, user.passwordHash);
+  if (!passwordMatched) {
+    throw new UnauthorizedException('账号或密码错误');
+  }
+
+  await this.prisma.sysAdminUser.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date() },
+  });
+
+  const token = await this.jwtService.signAsync({
+    sub: user.id.toString(),
+    tenantId: user.tenantId.toString(),
+    username: user.username,
+    type: 'admin',
+  });
+
+  const access = await this.resolveAdminAccess(user);
+  await this.redisService.rememberLoginSession({
+    scope: 'admin',
+    tenantId: user.tenantId.toString(),
+    actorId: user.id.toString(),
+    token,
+    ttlSeconds: this.resolveJwtTtlSeconds(),
+  });
+
+  return {
+    token,
+    menus: access.menus,
+    buttonPermissions: access.buttonPermissions,
+    user: {
+      id: user.id.toString(),
+      tenantId: user.tenantId.toString(),
       username: user.username,
       realName: user.realName,
-      status: user.status,
-      createdAt: user.createdAt,
-    };
-  }
-
-  async login(dto: LoginDto) {
-    const user = await this.userRepository.findByUsername(dto.username);
-
-    if (!user || user.status !== 'enabled') {
-      throw new UnauthorizedException('username or password is incorrect');
-    }
-
-    const passwordMatched = await bcrypt.compare(dto.password, user.passwordHash);
-    if (!passwordMatched) {
-      throw new UnauthorizedException('username or password is incorrect');
-    }
-
-    const token = await this.jwtService.signAsync({
-      sub: user.id,
-      username: user.username,
-      type: 'admin',
-    } satisfies AdminTokenPayload);
-
-    this.sessionService.remember({
-      scope: 'admin',
-      actorId: user.id,
-      token,
-      ttlSeconds: this.tokenTtlSeconds,
-    });
-
-    return {
-      token,
-      expiresIn: this.tokenTtlSeconds,
-      user: {
-        id: user.id,
-        username: user.username,
-        realName: user.realName,
-      },
-    };
-  }
-
-  async getAdminForAccess(input: { adminId: string }) {
-    const user = await this.userRepository.findById(input.adminId);
-    if (!user || user.status !== 'enabled') {
-      return null;
-    }
-
-    return {
-      id: user.id,
-      username: user.username,
-      realName: user.realName,
-    };
-  }
-
-  async profile(adminId: string) {
-    const user = await this.userRepository.getById(adminId);
-    return {
-      id: user.id,
-      username: user.username,
-      realName: user.realName,
-      status: user.status,
-    };
-  }
+      avatarUrl: user.avatarUrl,
+      tenantName: user.tenant.name,
+      roles: access.roleCodes,
+    },
+  };
 }
 ```
+
+为什么这样做：
+
+- 用户、密码 hash、状态、租户关系都必须持久化，不能放内存。
+- `deletedAt: null` 支持软删除。
+- `status = enabled` 控制账号是否可登录。
+- `lastLoginAt` 是后台审计和运营排查常用字段。
+- token 里放 `tenantId`，后续所有后台接口都能按租户隔离。
+
+后台用户的新增、修改、删除在 `SystemService` 中完成，例如创建用户：
+
+```ts
+async createUser(admin: CurrentAdminPayload, dto: SystemUserMutationDto) {
+  const tenantId = await this.getDefaultTenantId();
+  const username = this.normalizeText(dto.username);
+  const realName = this.normalizeText(dto.realName);
+  const roleCodes = this.normalizeStringArray(dto.roleCodes);
+
+  if (!dto.password) {
+    throw new BadRequestException('请输入密码');
+  }
+
+  await this.validateRoleCodes(tenantId, roleCodes);
+  await this.ensureUniqueUserFields(tenantId, {
+    username,
+    phone: this.normalizeOptionalText(dto.phone),
+  });
+
+  const user = await this.prisma.sysAdminUser.create({
+    data: {
+      tenantId,
+      username,
+      passwordHash: await bcrypt.hash(dto.password, 10),
+      realName,
+      roleCodes,
+      status: dto.status || 'enabled',
+    },
+  });
+
+  await this.writeAuditLog(admin, 'create', 'sys_admin_user', user.id, {
+    username,
+    realName,
+    roleCodes,
+  });
+
+  return this.getUser(user.id.toString());
+}
+```
+
+## 登录态：Redis Session
+
+JWT 签发后，在过期前默认都能通过签名校验。后台系统还需要“服务端主动撤销登录态”的能力，所以当前项目会把登录态写到 Redis。
+
+真实代码位置：
+
+```text
+server/src/modules/redis/redis.service.ts
+server/src/common/guards/admin-auth.guard.ts
+server/src/common/guards/member-auth.guard.ts
+```
+
+登录成功后写 session：
+
+```ts
+async rememberLoginSession(input: {
+  scope: 'admin' | 'member';
+  tenantId: string;
+  actorId: string;
+  token: string;
+  ttlSeconds?: number;
+}) {
+  const key = this.sessionKey(input.scope, input.tenantId, input.actorId);
+  const expiresAt = input.ttlSeconds
+    ? Date.now() + input.ttlSeconds * 1000
+    : null;
+
+  const entry = {
+    scope: input.scope,
+    tenantId: input.tenantId,
+    actorId: input.actorId,
+    token: input.token,
+    expiresAt,
+    createdAt: new Date(),
+  };
+
+  this.sessions.set(key, entry);
+  await this.writeRedisJson(key, entry, input.ttlSeconds);
+  await this.setCache(key, {
+    scope: input.scope,
+    tenantId: input.tenantId,
+    actorId: input.actorId,
+    tokenPreview: `${input.token.slice(0, 10)}...`,
+  }, input.ttlSeconds);
+
+  return key;
+}
+```
+
+每次请求，Guard 校验 JWT 后，再查 Redis session：
+
+```ts
+if (!(await this.redisService.hasLoginSession('admin', payload.tenantId, payload.sub))) {
+  throw new UnauthorizedException('登录态已失效，请重新登录');
+}
+```
+
+`hasLoginSession()` 的真实逻辑：
+
+```ts
+async hasLoginSession(scope: 'admin' | 'member', tenantId: string, actorId: string) {
+  this.pruneExpired();
+  if (!this.isSessionRequired()) {
+    return true;
+  }
+
+  const key = this.sessionKey(scope, tenantId, actorId);
+  if (this.canUseRedis()) {
+    const exists = await this.client!.exists(key).catch(() => 0);
+    if (exists > 0) {
+      return true;
+    }
+  }
+
+  return this.sessions.has(key);
+}
+```
+
+注意这里有两种运行方式：
+
+- `REDIS_MODE=redis` 且连接成功时，登录态写真实 Redis。
+- 本地学习环境也保留 `Map` 兜底，但它只是开发适配，不是业务主存储。
+
+## AuthService 注册和登录
 
 为什么登录失败统一提示用户名或密码错误：
 
@@ -785,71 +736,111 @@ export const CurrentAdmin = createParamDecorator(
 import {
   CanActivate,
   ExecutionContext,
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { AuthService, AdminTokenPayload } from '../../modules/auth/auth.service';
-import { SessionService } from '../../modules/auth/session.service';
+import { AuthService } from '../../modules/auth/auth.service';
+import { RedisService } from '../../modules/redis/redis.service';
+import { ADMIN_PERMISSIONS_KEY } from '../decorators/admin-permissions.decorator';
+
+interface AdminTokenPayload {
+  sub: string;
+  tenantId: string;
+  username: string;
+  type: string;
+}
 
 @Injectable()
 export class AdminAuthGuard implements CanActivate {
+  private readonly jwtService: JwtService;
+
   constructor(
-    private readonly jwtService: JwtService,
     private readonly authService: AuthService,
-    private readonly sessionService: SessionService,
-  ) {}
+    private readonly configService: ConfigService,
+    private readonly reflector: Reflector,
+    private readonly redisService: RedisService,
+  ) {
+    this.jwtService = new JwtService({
+      secret: this.configService.get<string>('jwt.accessSecret') || 'dev-access-secret',
+    });
+  }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = this.resolveBearerToken(request.headers?.authorization);
+    const url = String(request?.url || '');
+    const method = String(request?.method || '').toUpperCase();
+    const path = url.split('?')[0];
+
+    if (!path.startsWith('/api/admin/')) {
+      return true;
+    }
+    if (path === '/api/admin/v1/auth/login') {
+      return true;
+    }
+
+    const authHeader = request.headers?.authorization || '';
+    const token = authHeader.startsWith('Bearer ')
+      ? authHeader.slice('Bearer '.length)
+      : '';
 
     if (!token) {
-      throw new UnauthorizedException('please login first');
+      throw new UnauthorizedException('请先登录');
     }
 
     let payload: AdminTokenPayload;
     try {
       payload = await this.jwtService.verifyAsync<AdminTokenPayload>(token);
     } catch {
-      throw new UnauthorizedException('login expired');
+      throw new UnauthorizedException('登录已失效，请重新登录');
     }
 
     if (payload.type !== 'admin') {
-      throw new UnauthorizedException('invalid admin token');
+      throw new UnauthorizedException('管理员身份无效');
     }
 
-    const sessionValid = this.sessionService.hasSession('admin', payload.sub, token);
-    if (!sessionValid) {
-      throw new UnauthorizedException('login session expired');
+    if (!(await this.redisService.hasLoginSession('admin', payload.tenantId, payload.sub))) {
+      throw new UnauthorizedException('登录态已失效，请重新登录');
     }
 
-    const admin = await this.authService.getAdminForAccess({
-      adminId: payload.sub,
+    const adminUser = await this.authService.getAdminUserForAccess({
+      adminId: BigInt(payload.sub),
+      tenantId: BigInt(payload.tenantId),
+      username: payload.username,
     });
-    if (!admin) {
-      throw new UnauthorizedException('admin disabled or not found');
+    if (!adminUser) {
+      throw new UnauthorizedException('管理员不存在或已停用');
     }
 
+    const access = await this.authService.resolveAdminAccess(adminUser);
     request.admin = {
-      adminId: admin.id,
-      username: admin.username,
-      realName: admin.realName,
+      adminId: adminUser.id,
+      tenantId: adminUser.tenantId,
+      username: adminUser.username,
+      realName: adminUser.realName,
+      avatarUrl: adminUser.avatarUrl,
+      tenantName: adminUser.tenant.name,
+      ...access,
     };
 
-    return true;
-  }
+    const requiredPermissions =
+      this.reflector.getAllAndOverride<string[]>(ADMIN_PERMISSIONS_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) || this.resolvePermissionsByRoute(method, path);
 
-  private resolveBearerToken(authorization: unknown) {
-    const value = Array.isArray(authorization)
-      ? authorization[0]
-      : String(authorization || '');
-
-    if (!value.startsWith('Bearer ')) {
-      return '';
+    if (requiredPermissions.length > 0 && !access.isSuperAdmin) {
+      const granted = new Set(access.permissionCodes);
+      const allowed = requiredPermissions.every((permission) => granted.has(permission));
+      if (!allowed) {
+        throw new ForbiddenException('无权访问');
+      }
     }
 
-    return value.slice('Bearer '.length);
+    return true;
   }
 }
 ```
@@ -860,17 +851,17 @@ Guard 的职责：
 有没有 token
 token 是否有效
 token 类型是否 admin
-session 是否仍有效
-用户是否仍存在且启用
-把用户身份挂到 request
+Redis 登录态是否仍有效
+数据库里的管理员是否仍存在且启用
+解析 RBAC 菜单、权限、按钮
+把管理员身份和权限快照挂到 request
 ```
 
 为什么还要查用户：
 
 - token 里有用户 id，但用户可能被停用。
 - 后台权限和状态应该以数据库当前状态为准。
-
-目前只做登录态，后面再加 RBAC 权限判断。
+- Redis session 允许服务端主动让登录态失效，不能只靠 JWT 过期时间。
 
 ## AuthModule
 
@@ -879,44 +870,43 @@ session 是否仍有效
 ```ts
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import type { JwtModuleOptions } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MemberAuthGuard } from '../../common/guards/member-auth.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { SessionService } from './session.service';
-import { UserRepository } from './user.repository';
+import { MarketingModule } from '../marketing/marketing.module';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
-    JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET || 'dev-access-secret',
-      signOptions: {
-        expiresIn: '2h',
+    MarketingModule,
+    RedisModule,
+    JwtModule.registerAsync({
+      global: true,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService): JwtModuleOptions => {
+        const options = {
+          secret: configService.get<string>('jwt.accessSecret') || 'dev-access-secret',
+          signOptions: {
+            expiresIn: configService.get<string>('jwt.accessExpiresIn') || '2h',
+          },
+        };
+
+        return options as JwtModuleOptions;
       },
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    UserRepository,
-    SessionService,
-  ],
-  exports: [
-    AuthService,
-    SessionService,
-    JwtModule,
-  ],
+  providers: [AuthService, MemberAuthGuard],
+  exports: [AuthService],
 })
 export class AuthModule {}
 ```
 
-为什么要 `exports`：
+这里和前面的“内存版”不同：
 
-- `AdminAuthGuard` 依赖 `AuthService`、`SessionService`、`JwtService`。
-- 如果 Guard 放在别的模块或全局使用，需要从 AuthModule 暴露这些能力。
-
-真实项目里还会有：
-
-```text
-PrismaModule
-RedisModule
-ConfigModule
-```
+- 没有 `UserRepository`，后台用户走 `PrismaService` 读写 MySQL。
+- 没有 `SessionService`，登录态写入 `RedisService`。
+- JWT 配置来自 `ConfigService`，不是在模块里写死。
