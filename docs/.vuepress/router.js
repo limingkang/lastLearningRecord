@@ -24,6 +24,7 @@ module.exports = [
       ['/node/eightnode', '发货售后退款'],
       ['/node/ninenode', '营销CMS首页配置'],
       ['/node/tennode', '文件上传导入导出'],
+      ['/node/elevennode', '异步任务和MQ'],
     ]
   },
   {

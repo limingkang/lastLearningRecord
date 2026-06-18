@@ -1469,30 +1469,6 @@ curl -X POST http://localhost:3000/api/admin/v1/cms/banners \
 
 ## 本章和真实 ERP 项目的对应关系
 
-真实项目中可以重点看：
-
-```text
-
-
-
-
-
-
-
-
-
-
-  MkCouponTemplate
-  MkCoupon
-  MkPromotion
-  MkPromotionProduct
-  MkFreightTemplate
-  CmsBanner
-  CmsPageModule
-  CmsNotice
-  CmsAgreement
-```
-
 教学版和真实项目的区别：
 
 | 能力 | 教学版 | 真实项目 |

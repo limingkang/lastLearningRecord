@@ -513,4 +513,443 @@ async createImportTemplate(dto: DataImportTemplateRequestDto) {
 }
 ```
 
+## 定时任务 Scheduler
 
+当前项目有定时任务中心，用来处理：
+
+```text
+close-unpaid-orders      关闭超时未支付订单
+auto-confirm-receipts    自动确认收货
+expire-coupons           过期优惠券
+inventory-warning        库存预警
+wechat-reconciliation    微信对账
+report-summary           报表汇总
+```
+
+这些任务不是用户点一次按钮才需要执行，而是系统要周期性检查：
+
+- 订单过了 30 分钟还没支付，要自动关闭并释放库存、优惠券。
+- 已发货订单超过 7 天，可以自动确认收货。
+- 优惠券过期后，要自动改成 `expired`，避免下单时还被使用。
+- 库存预警、报表汇总、微信对账要定期生成，方便后台查看。
+
+### 模块装配
+
+`SchedulerModule` 会依赖订单、营销、财务、报表、Redis 和 Prisma：
+
+```ts
+@Module({
+  imports: [
+    PrismaModule,
+    RedisModule,
+    OrderModule,
+    MarketingModule,
+    FinanceModule,
+    ReportModule,
+  ],
+  controllers: [SchedulerController],
+  providers: [SchedulerService],
+})
+export class SchedulerModule {}
+```
+
+根模块里注册 `SchedulerModule` 后，服务启动时就会创建 `SchedulerService`：
+
+```ts
+@Module({
+  imports: [
+    RedisModule,
+    PrismaModule,
+    OrderModule,
+    MarketingModule,
+    FinanceModule,
+    ReportModule,
+    SchedulerModule,
+  ],
+})
+export class AppModule {}
+```
+
+为什么 scheduler 要依赖这些业务模块：
+
+- 定时任务本身不应该重写关单、过期优惠券、对账这些业务逻辑。
+- Scheduler 只负责“什么时候执行、是否重复执行、结果怎么记录”。
+- 真正的业务动作仍然由 `OrderService`、`MarketingService`、`FinanceService`、`ReportService` 完成。
+
+### 后台接口
+
+当前项目提供三个后台接口：
+
+```ts
+@ApiTags('scheduler')
+@Controller('/api/admin/v1/scheduler')
+export class SchedulerController {
+  constructor(private readonly schedulerService: SchedulerService) {}
+
+  @Get('/jobs')
+  listJobs() {
+    return this.schedulerService.listJobs();
+  }
+
+  @Post('/jobs/:id/run')
+  runJob(@Param('id') id: string) {
+    return this.schedulerService.runJob(id);
+  }
+
+  @Post('/run-all')
+  runAll() {
+    return this.schedulerService.runAll();
+  }
+}
+```
+
+对应用途：
+
+| 接口 | 用途 |
+| --- | --- |
+| `GET /api/admin/v1/scheduler/jobs` | 查看所有任务、是否启用、上次执行、下次执行、错误信息 |
+| `POST /api/admin/v1/scheduler/jobs/:id/run` | 手动执行某个任务 |
+| `POST /api/admin/v1/scheduler/run-all` | 手动执行所有任务 |
+
+`AdminAuthGuard` 会给 scheduler 接口推导权限：
+
+```ts
+if (path.startsWith('/api/admin/v1/scheduler')) {
+  return [isRead ? 'scheduler:read' : 'scheduler:write'];
+}
+```
+
+### 服务启动后自动 tick
+
+`SchedulerService` 实现了 `OnModuleInit` 和 `OnModuleDestroy`。服务启动时，如果 `SCHEDULER_ENABLED` 没关闭，就用 `setInterval` 周期扫描到期任务：
+
+```ts
+export class SchedulerService implements OnModuleInit, OnModuleDestroy {
+  private timer: NodeJS.Timeout | undefined;
+  private readonly jobs = new Map<JobId, SchedulerJob>();
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
+    private readonly redisService: RedisService,
+    private readonly orderService: OrderService,
+    private readonly marketingService: MarketingService,
+    private readonly financeService: FinanceService,
+    private readonly reportService: ReportService,
+  ) {
+    this.registerJobs();
+  }
+
+  onModuleInit() {
+    if (!this.isEnabled()) {
+      return;
+    }
+    this.timer = setInterval(() => {
+      this.runDueJobs().catch(() => undefined);
+    }, this.getTickMs());
+  }
+
+  onModuleDestroy() {
+    if (this.timer) {
+      clearInterval(this.timer);
+    }
+  }
+}
+```
+
+相关配置：
+
+```env
+SCHEDULER_ENABLED=true
+SCHEDULER_TICK_MS=30000
+SCHEDULER_CLOSE_UNPAID_ORDERS_INTERVAL_MS=60000
+SCHEDULER_AUTO_CONFIRM_RECEIPTS_INTERVAL_MS=600000
+```
+
+没有单独配置某个任务间隔时，会使用代码里的默认分钟数。
+
+### 注册任务
+
+当前项目把任务定义放在内存 `Map` 里，任务历史则写入 MySQL：
+
+```ts
+private registerJobs() {
+  const defaults: Array<{ id: JobId; name: string; minutes: number }> = [
+    { id: 'close-unpaid-orders', name: '超时关单', minutes: 1 },
+    { id: 'auto-confirm-receipts', name: '自动确认收货', minutes: 10 },
+    { id: 'expire-coupons', name: '优惠券过期', minutes: 10 },
+    { id: 'inventory-warning', name: '库存预警汇总', minutes: 30 },
+    { id: 'wechat-reconciliation', name: '微信对账生成', minutes: 60 },
+    { id: 'report-summary', name: '报表汇总', minutes: 30 },
+  ];
+
+  defaults.forEach((item) => {
+    const intervalMs = Number(
+      this.configService.get<string>(
+        `SCHEDULER_${item.id.replace(/-/g, '_').toUpperCase()}_INTERVAL_MS`,
+      ) || item.minutes * 60 * 1000,
+    );
+
+    this.jobs.set(item.id, {
+      id: item.id,
+      name: item.name,
+      intervalMs,
+      enabled: true,
+      running: false,
+      lastRunAt: null,
+      nextRunAt: new Date(Date.now() + intervalMs),
+      lastResult: null,
+      lastError: null,
+    });
+  });
+}
+```
+
+为什么任务定义不直接存 MySQL：
+
+- 当前项目先用代码固定任务清单，避免后台误删关键系统任务。
+- `jobs` 保存的是运行态，比如 `running`、`nextRunAt`、`lastError`。
+- 任务执行历史已经写入 `sys_async_task`，后台排查有记录。
+
+### 扫描到期任务
+
+自动 tick 只做一件事：找到到期任务，然后调用 `runJob()`：
+
+```ts
+private async runDueJobs() {
+  const now = Date.now();
+  for (const job of this.jobs.values()) {
+    if (!job.enabled || job.running) {
+      continue;
+    }
+    if (!job.nextRunAt || job.nextRunAt.getTime() <= now) {
+      await this.runJob(job.id);
+    }
+  }
+}
+```
+
+如果服务只启动一个进程，本地 `setInterval` 就能跑。但真实部署可能有多个 Node 进程或多台机器，所有实例都到点执行同一个任务，就会出现重复关单、重复对账、重复写任务记录。
+
+所以当前项目在 `SchedulerService.runJob()` 里先抢 Redis 锁：
+
+```ts
+async runJob(id: string) {
+  const job = this.jobs.get(id as JobId);
+  if (!job) {
+    return { id, skipped: true, reason: 'unknown job' };
+  }
+  if (!job.enabled) {
+    return { id, skipped: true, reason: 'disabled' };
+  }
+
+  const lock = await this.redisService.acquireLock(
+    `scheduler:${job.id}`,
+    'scheduler',
+    Math.ceil(job.intervalMs / 1000),
+  );
+  if (!lock.locked) {
+    return {
+      id: job.id,
+      skipped: true,
+      reason: 'locked',
+      lock,
+    };
+  }
+
+  job.running = true;
+  try {
+    const result = await this.executeJob(job.id);
+    job.lastRunAt = new Date();
+    job.nextRunAt = new Date(job.lastRunAt.getTime() + job.intervalMs);
+    job.lastResult = result;
+    job.lastError = null;
+    await this.recordTask(job, 'succeeded', result);
+    return { ...this.toJobRow(job), result };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    job.lastRunAt = new Date();
+    job.nextRunAt = new Date(job.lastRunAt.getTime() + job.intervalMs);
+    job.lastError = message;
+    await this.recordTask(job, 'failed', { error: message });
+    return { ...this.toJobRow(job), error: message };
+  } finally {
+    job.running = false;
+    await this.redisService.releaseLock(`scheduler:${job.id}`, 'scheduler');
+  }
+}
+```
+
+### 分发到具体业务
+
+`executeJob()` 负责把任务 ID 分发到真实业务 Service：
+
+```ts
+private async executeJob(id: JobId) {
+  switch (id) {
+    case 'close-unpaid-orders':
+      return this.orderService.closeExpiredUnpaidOrders();
+    case 'auto-confirm-receipts':
+      return this.orderService.autoConfirmReceipts();
+    case 'expire-coupons':
+      return this.marketingService.expireCoupons();
+    case 'inventory-warning':
+      return this.buildInventoryWarning();
+    case 'wechat-reconciliation':
+      return this.financeService.generateReconciliation({
+        channel: 'wechat',
+        billDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      });
+    case 'report-summary':
+      return this.buildReportSummary();
+    default:
+      return {};
+  }
+}
+```
+
+几个真实任务的核心逻辑：
+
+```ts
+async closeExpiredUnpaidOrders() {
+  const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+  const orders = await this.prisma.ecOrder.findMany({
+    where: {
+      status: 'pending_payment',
+      payStatus: 'unpaid',
+      createdAt: { lte: cutoff },
+      deletedAt: null,
+    },
+  });
+
+  for (const order of orders) {
+    await this.prisma.$transaction(async (tx) => {
+      await this.releaseOrderResources(tx, order, 'order_timeout_release', '超时关闭订单释放库存');
+      await tx.ecOrder.update({
+        where: { id: order.id },
+        data: { status: 'cancelled', cancelledAt: new Date() },
+      });
+    });
+  }
+
+  return { affected: orders.length };
+}
+```
+
+```ts
+async expireCoupons() {
+  const result = await this.prisma.mkCoupon.updateMany({
+    where: {
+      status: 'available',
+      expiredAt: { lte: new Date() },
+      deletedAt: null,
+    },
+    data: { status: 'expired' },
+  });
+  return { affected: result.count };
+}
+```
+
+`RedisService.acquireLock()` 在真实 Redis 模式下使用 `SET key value NX PX ttl`：
+
+```ts
+async acquireLock(key: string, owner?: string, ttlSeconds = 30) {
+  const normalizedKey = this.normalizeKey(key);
+  const nextOwner = owner || randomUUID();
+
+  if (this.canUseRedis()) {
+    const redisKey = this.lockRedisKey(normalizedKey);
+    const result = await this.client!.set(redisKey, nextOwner, {
+      NX: true,
+      PX: ttlSeconds * 1000,
+    });
+
+    if (result === 'OK') {
+      return {
+        locked: true,
+        key: normalizedKey,
+        owner: nextOwner,
+        expiresAt: new Date(Date.now() + ttlSeconds * 1000).toISOString(),
+      };
+    }
+
+    return {
+      locked: false,
+      key: normalizedKey,
+      owner: await this.client!.get(redisKey) || '',
+      expiresAt: null,
+    };
+  }
+
+  // 本地开发没有 Redis 时，用内存锁兜底。
+}
+```
+
+为什么锁要有 TTL：
+
+- 任务执行中服务崩溃时，锁能自动过期。
+- 防止某个任务失败后永久阻塞后续执行。
+- TTL 通常按任务间隔设置，当前项目用 `Math.ceil(job.intervalMs / 1000)`。
+
+为什么释放锁还要传 owner：
+
+- 只有持有者才能释放自己的锁。
+- 避免 A 任务超时后锁过期，B 抢到新锁，A 的 finally 又误删 B 的锁。
+- 当前项目用固定 owner `scheduler`，已经能满足单类调度任务互斥；如果以后要更严格，可以给每次执行生成唯一 owner。
+
+任务结果仍然记录到 MySQL 的 `sys_async_task`：
+
+```ts
+private async recordTask(job: SchedulerJob, status: string, result: unknown) {
+  const tenantId = await this.getDefaultTenantId();
+  await this.prisma.sysAsyncTask.create({
+    data: {
+      tenantId,
+      taskNo: `JOB${Date.now()}${job.id.replace(/-/g, '').slice(0, 12)}`,
+      type: `scheduler_${job.id}`,
+      status,
+      progress: status === 'succeeded' ? 100 : 0,
+      resultJson: this.toNullableJson(result),
+      errorMessage: status === 'failed'
+        ? String((result as { error?: string })?.error || '')
+        : null,
+      startedAt: job.lastRunAt || new Date(),
+      finishedAt: new Date(),
+    },
+  });
+}
+```
+
+所以这里的分工是：
+
+| 能力 | 存在哪里 | 用途 |
+| --- | --- | --- |
+| 是否正在执行 | Redis lock | 防重复执行 |
+| 执行结果和历史 | MySQL `sys_async_task` | 后台可查、可追溯 |
+| 当前进程内状态 | `SchedulerService.jobs` | 展示 lastRunAt、nextRunAt、running |
+
+### 调用顺序
+
+查看任务：
+
+```text
+GET /api/admin/v1/scheduler/jobs
+```
+
+手动执行超时关单：
+
+```text
+POST /api/admin/v1/scheduler/jobs/close-unpaid-orders/run
+```
+
+手动执行全部任务：
+
+```text
+POST /api/admin/v1/scheduler/run-all
+```
+
+为什么仍然需要手动执行接口：
+
+- 本地调试不用等定时器。
+- 运维排查时可以单独重跑某个任务。
+- 自动 tick 和手动触发都走 `runJob()`，所以锁、错误处理、任务台账逻辑一致。

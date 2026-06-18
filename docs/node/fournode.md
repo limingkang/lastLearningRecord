@@ -210,7 +210,7 @@ src/
 - 这样后面加支付宝登录、手机号登录、企业微信登录时，身份入口仍然在 `auth`。
 - 这样后面订单、售后、营销要用会员资料时，依赖的是 `member` 业务模块。
 
-## 会员表为什么这样设计
+## 会员表设计
 
 初学者可能会先设计一张表：
 
@@ -434,10 +434,7 @@ export type CurrentMemberPayload = {
 - Node.js 的 `BigInt` 不能直接 `JSON.stringify`，真实项目要转成字符串返回。
 - 真实数据库用 `BigInt` 是为了支撑更大的数据量。
 
-## 定义 DTO，让接口输入先变干净
-
-DTO 负责描述接口可以接收什么字段，并做基础校验。
-
+## 定义 DTO
 ### `miniapp-login.dto.ts`
 
 ```ts
@@ -1117,6 +1114,30 @@ export class AuthService {
 - 纯 JWT 在过期前通常一直有效。
 - 用户被禁用、退出登录、修改关键身份信息时，需要服务端主动让 token 失效。
 - Redis session 可以记录当前服务端是否仍然承认这个 token 对应的登录态。
+
+小程序登录写入 Redis 的 key 和后台登录类似，只是 `scope` 是 `member`：
+
+```ts
+await this.redisService.rememberLoginSession({
+  scope: 'member',
+  tenantId: tenant.id.toString(),
+  actorId: member.id.toString(),
+  token,
+  ttlSeconds: this.resolveJwtTtlSeconds(),
+});
+```
+
+最终 Redis key 形如：
+
+```text
+session:member:{tenantId}:{memberId}
+```
+
+为什么会员登录态不放 MySQL：
+
+- 登录态是临时状态，跟 token 过期时间一致，天然适合 TTL。
+- MySQL 负责保存会员、微信身份、地址、积分等长期数据。
+- Redis 负责“当前这次登录是否有效”，删除 key 就能让会员重新登录。
 
 为什么第一次登录赠送积分放在服务端：
 
@@ -2135,43 +2156,5 @@ curl -X POST http://localhost:3000/api/app/v1/favorites/<productId> \
 curl http://localhost:3000/api/app/v1/members/points \
   -H "Authorization: Bearer <accessToken>"
 ```
-
-## 本章和真实 ERP 项目的对应关系
-
-真实项目中可以重点看：
-
-```text
-
-
-
-
-
-
-
-
-
-
-
-
-
-  EcMember
-  EcMemberWechat
-  EcMemberAddress
-  EcMemberFavorite
-  EcMemberPointsLog
-```
-
-简单版和真实项目的区别：
-
-| 能力 | 简单版 | 真实项目 |
-| --- | --- | --- |
-| 数据保存 | Prisma + MySQL | 当前项目真实实现 |
-| 登录 session | Redis 登录态 | 当前项目真实实现 |
-| 微信登录 | mock + fetch 示例 | 配置化 mock/real |
-| 积分赠送 | 注册时简单赠送 | 营销模块统一发券发积分 |
-| 地址默认 | 数据库事务 | 当前项目真实实现 |
-| 收藏防重复 | 唯一索引/条件查询 | 当前项目真实实现 |
-| 后台权限 | 示例 AdminAuthGuard | RBAC 权限点 |
-
 
 

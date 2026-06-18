@@ -616,9 +616,9 @@ export class ProductMutationDto {
 
 真实项目金额不能用浮点数，应该使用数据库 `DECIMAL`，服务端用 Decimal 类型或字符串处理。
 
-## Prisma 数据访问示例
+## Prisma数据访问
 
-下面这一段是为了讲清楚分类、品牌、商品、SKU 的数据操作逻辑。当前项目商品中心由 `CatalogService` 直接注入 `PrismaService` 读写 MySQL。
+分类、品牌、商品、SKU 的数据操作逻辑，当前项目商品中心由 `CatalogService` 直接注入 `PrismaService` 读写 MySQL。
 
 ### Prisma 入口
 

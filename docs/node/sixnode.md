@@ -1714,28 +1714,6 @@ curl -X POST http://localhost:3000/api/app/v1/orders/<orderId>/cancel \
 
 ## 本章和真实 ERP 项目的对应关系
 
-真实项目中可以重点看：
-
-```text
-
-
-
-
-
-
-
-
-  SysIdempotencyKey
-  EcStockBalance
-  EcStockMovement
-  EcStockLock
-  EcCartItem
-  EcOrder
-  EcOrderAddress
-  EcOrderItem
-  MkCoupon
-```
-
 简易版和真实项目的区别：
 
 | 能力 | 教学版 | 真实项目 |

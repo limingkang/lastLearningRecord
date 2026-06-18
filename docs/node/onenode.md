@@ -1,4 +1,4 @@
-﻿一个后台系统的骨架。后面所有商品、订单、库存、支付模块，都是在这个骨架上继续长出来的：
+﻿一个后台系统的骨架。后面所有商品、订单、库存、支付模块，都是在这个骨架上继续长出来的，其中定时任务在最后面统一加上：
 
 ```text
 启动服务
@@ -267,6 +267,41 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 })
 export class RedisModule {}
 ```
+
+当前项目里的 `RedisService` 不只是连接 Redis，它统一提供四类能力：
+
+| 能力 | 用途 | 真实使用位置 |
+| --- | --- | --- |
+| 登录态 session | JWT 之外再保存服务端认可的登录状态 | 后台登录、小程序登录、AdminAuthGuard、MemberAuthGuard |
+| 缓存 key/value | 后台 Redis 运维页查看、写入、删除临时缓存 | RedisController |
+| 分布式锁 | 防止定时任务在多个进程里重复执行 | SchedulerService |
+| 限流计数 | 按 IP、方法、路径统计请求次数 | RateLimitGuard |
+
+核心 key 的命名也集中在 `RedisService` 内：
+
+```ts
+private sessionKey(scope: 'admin' | 'member', tenantId: string, actorId: string) {
+  return `session:${scope}:${tenantId}:${actorId}`;
+}
+
+private cacheRedisKey(key: string) {
+  return `cache:${key}`;
+}
+
+private lockRedisKey(key: string) {
+  return `lock:${key}`;
+}
+
+private rateRedisKey(key: string) {
+  return `rate:${key}`;
+}
+```
+
+为什么要统一封装：
+
+- 业务代码不直接拼 Redis 命令，后面切换 key 规则更容易。
+- 开发环境可以用本地内存兜底，线上用真实 Redis。
+- 登录态、锁、限流都有过期时间，适合放 Redis，不适合放 MySQL。
 
 ## 健康检查模块
 

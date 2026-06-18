@@ -1368,28 +1368,6 @@ curl -X POST http://localhost:3000/api/app/v1/orders/preview \
 
 ## 本章和真实 ERP 项目的对应关系
 
-真实项目中可以重点看：
-
-```text
-
-
-
-
-
-
-
-
-
-
-  EcCartItem
-  EcOrder
-  EcOrderAddress
-  EcOrderItem
-  MkCoupon
-  MkPromotion
-  MkFreightTemplate
-```
-
 教学版和真实项目的区别：
 
 | 能力 | 教学版 | 真实项目 |
@@ -1402,13 +1380,6 @@ curl -X POST http://localhost:3000/api/app/v1/orders/preview \
 | 订单预览 | 不落库 | 不落订单，但读取真实商品/库存/营销 |
 | 创建订单 | 下一章实现 | 事务创建订单、明细、地址、锁库存 |
 
-当前项目购物车真实代码在：
-
-```text
-
-
-
-```
 
 加购时不是写内存数组，而是先查 SKU，再用 `tenantId_memberId_skuId` 唯一键合并购物车：
 

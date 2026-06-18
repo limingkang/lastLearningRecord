@@ -307,21 +307,9 @@ export type AuditLog = {
 };
 ```
 
-为什么角色里先用数组保存权限和菜单：
+角色里先用数组保存权限和菜单：对应表中的这些字段来存放 `role_codes_json`、`permission_codes_json`、`menu_ids_json`。
 
-- 先简单直接了解下实现方式
-- 对应真实项目里的 `role_codes_json`、`permission_codes_json`、`menu_ids_json`。
-- 后续如果权限规模大，可以拆成中间表。
-
-真实数据库中更像：
-
-```text
-sys_admin_user.role_codes_json
-sys_role.permission_codes_json
-sys_role.menu_ids_json
-```
-
-如果项目变大，也可以演进成：
+如果项目变大，也可以演进成中间表：
 
 ```text
 sys_user_role
@@ -330,8 +318,6 @@ sys_role_menu
 ```
 
 ## DTO 设计
-
-DTO 负责接口入参校验。
 
 ### `user.dto.ts`
 
@@ -562,9 +548,9 @@ export class MenuMutationDto {
 - 前端渲染菜单时，可以根据权限决定是否显示。
 - 但最终接口访问仍由后端 Guard 判断。
 
-## Prisma 数据访问示例
+## Prisma数据读写
 
-下面这一段用当前项目的真实写法讲 RBAC 数据读写逻辑。用户、角色、权限、菜单和审计日志都由 `SystemService` 直接注入 `PrismaService` 读写 MySQL。
+RBAC数据读写逻辑。用户、角色、权限、菜单和审计日志都由 `SystemService` 直接注入 `PrismaService` 读写 MySQL。
 
 ### Prisma 入口
 
@@ -1602,6 +1588,65 @@ return {
 - 用户可以直接调用接口。
 - 后端必须兜底。
 
+### 后台登录态为什么写 Redis
+
+后台登录时，JWT 负责“这个 token 是不是服务端签发的”，Redis 负责“服务端现在还承不承认这次登录”。当前项目在 `AuthService.adminLogin()` 里登录成功后写入 Redis session：
+
+```ts
+const token = await this.jwtService.signAsync({
+  sub: user.id.toString(),
+  tenantId: user.tenantId.toString(),
+  username: user.username,
+  type: 'admin',
+});
+
+await this.redisService.rememberLoginSession({
+  scope: 'admin',
+  tenantId: user.tenantId.toString(),
+  actorId: user.id.toString(),
+  token,
+  ttlSeconds: this.resolveJwtTtlSeconds(),
+});
+```
+
+`RedisService` 里会把登录态写到 `session:admin:{tenantId}:{actorId}`：
+
+```ts
+async rememberLoginSession(input: {
+  scope: 'admin' | 'member';
+  tenantId: string;
+  actorId: string;
+  token: string;
+  ttlSeconds?: number;
+}) {
+  const key = this.sessionKey(input.scope, input.tenantId, input.actorId);
+  const entry = {
+    scope: input.scope,
+    tenantId: input.tenantId,
+    actorId: input.actorId,
+    token: input.token,
+    expiresAt: input.ttlSeconds ? Date.now() + input.ttlSeconds * 1000 : null,
+    createdAt: new Date(),
+  };
+
+  this.sessions.set(key, entry);
+  await this.writeRedisJson(key, entry, input.ttlSeconds);
+  await this.setCache(key, {
+    scope: input.scope,
+    tenantId: input.tenantId,
+    actorId: input.actorId,
+    tokenPreview: `${input.token.slice(0, 10)}...`,
+  }, input.ttlSeconds);
+  return key;
+}
+```
+
+为什么不只靠 JWT：
+
+- JWT 在过期前通常一直有效，服务端很难主动撤销。
+- Redis session 可以支持强制下线、禁用账号后立即失效。
+- Redis 只保存临时登录态，不保存用户、角色、权限主数据。
+
 ## AdminAuthGuard 加权限校验
 
 ### 核心代码
@@ -1681,6 +1726,90 @@ export class AdminAuthGuard implements CanActivate {
 - 系统初始化阶段需要一个最高权限账号。
 - 否则可能出现没有人能配置权限的死锁。
 - 但真实项目里超级管理员也要谨慎使用并记录审计。
+
+## Redis 限流 Guard
+
+当前项目启动时会把 `RateLimitGuard` 挂成全局守卫，而且顺序在 `AdminAuthGuard` 前面：
+
+```ts
+app.useGlobalGuards(app.get(RateLimitGuard), app.get(AdminAuthGuard));
+```
+
+限流用 Redis 记录“某个 IP + HTTP 方法 + 路径”在一个时间窗口内访问了多少次。这样可以挡住后台接口被频繁刷新、脚本误调用或简单暴力请求。
+
+### `rate-limit.guard.ts`
+
+```ts
+@Injectable()
+export class RateLimitGuard implements CanActivate {
+  constructor(private readonly redisService: RedisService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (!this.redisService.isRateLimitEnabled()) {
+      return true;
+    }
+
+    const request = context.switchToHttp().getRequest();
+    const path = String(request?.url || '').split('?')[0];
+    if (this.shouldSkip(path)) {
+      return true;
+    }
+
+    const method = String(request?.method || 'GET').toUpperCase();
+    const ip = this.resolveIp(request);
+    const result = await this.redisService.checkRateLimit({
+      key: `rate:${ip}:${method}:${path}`,
+    });
+
+    if (!result.allowed) {
+      throw new HttpException(
+        {
+          message: '请求过于频繁，请稍后再试',
+          resetAt: result.resetAt,
+        },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    return true;
+  }
+}
+```
+
+`RedisService.checkRateLimit()` 在真实 Redis 模式下使用 `INCR + EXPIRE`：
+
+```ts
+async checkRateLimit(input: { key: string; limit?: number; windowSeconds?: number }) {
+  const key = this.normalizeKey(input.key);
+  const limit = input.limit || this.getDefaultRateLimit();
+  const windowSeconds = input.windowSeconds || this.getDefaultRateWindowSeconds();
+
+  if (this.canUseRedis()) {
+    const redisKey = this.rateRedisKey(key);
+    const count = await this.client!.incr(redisKey);
+    if (count === 1) {
+      await this.client!.expire(redisKey, windowSeconds);
+    }
+    const ttl = await this.client!.ttl(redisKey);
+    return this.toRateLimitResult({
+      key,
+      count,
+      limit,
+      resetAt: Date.now() + Math.max(ttl, 1) * 1000,
+    });
+  }
+
+  // 本地开发没有 Redis 时，回退到内存桶。
+}
+```
+
+相关配置：
+
+```env
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_MAX=300
+RATE_LIMIT_WINDOW_SECONDS=60
+```
 
 ## 审计日志 Interceptor
 
@@ -1905,6 +2034,78 @@ AdminAuthGuard 注入 AuthService + RedisService。
 ```
 
 这样能避免 AuthModule 和 SystemModule 互相依赖。
+
+## Redis 运维接口
+
+当前项目还有一个后台 Redis 运维模块，给管理员查看 Redis 状态、缓存、登录态、锁和限流结果。它不是业务主数据，只是临时状态的观察和调试入口。
+
+目标接口：
+
+```text
+GET    /api/admin/v1/redis/status
+GET    /api/admin/v1/redis/cache
+GET    /api/admin/v1/redis/cache/:key
+POST   /api/admin/v1/redis/cache
+DELETE /api/admin/v1/redis/cache/:key
+GET    /api/admin/v1/redis/sessions
+POST   /api/admin/v1/redis/locks/acquire
+POST   /api/admin/v1/redis/locks/release
+POST   /api/admin/v1/redis/rate-limit/check
+```
+
+核心 Controller：
+
+```ts
+@ApiTags('redis')
+@Controller('/api/admin/v1/redis')
+export class RedisController {
+  constructor(private readonly redisService: RedisService) {}
+
+  @Get('/status')
+  status() {
+    return this.redisService.getStatus();
+  }
+
+  @Get('/cache')
+  listCache(@Query() query: RedisQueryDto) {
+    return this.redisService.listCache(query);
+  }
+
+  @Post('/cache')
+  setCache(@Body() dto: RedisCacheMutationDto) {
+    return this.redisService.setCache(dto.key, dto.value, dto.ttlSeconds);
+  }
+
+  @Get('/sessions')
+  listSessions(@Query() query: RedisQueryDto) {
+    return this.redisService.listSessions(query);
+  }
+
+  @Post('/locks/acquire')
+  acquireLock(@Body() dto: RedisLockMutationDto) {
+    return this.redisService.acquireLock(dto.key, dto.owner, dto.ttlSeconds);
+  }
+
+  @Post('/rate-limit/check')
+  checkRateLimit(@Body() dto: RedisRateLimitDto) {
+    return this.redisService.checkRateLimit(dto);
+  }
+}
+```
+
+`AdminAuthGuard` 会给 Redis 运维接口推导权限：
+
+```ts
+if (path.startsWith('/api/admin/v1/redis')) {
+  return [isRead ? 'redis:read' : 'redis:write'];
+}
+```
+
+为什么 Redis 运维也要走后台权限：
+
+- session、锁、缓存都可能包含业务上下文，不能公开暴露。
+- 手动释放锁、写缓存属于高风险操作，要限制到管理员。
+- 这些接口主要用于排查问题，不应该被小程序端或普通用户调用。
 
 ## 更清晰 Guard 依赖
 
