@@ -1,4 +1,4 @@
-现在要继续处理支付后的交易后半段，也是履约和售后：
+﻿现在要继续处理支付后的交易后半段，也是履约和售后：
 
 ```text
 商家发货
@@ -92,20 +92,25 @@ OrderModule
 
 ### 发货单 `ec_delivery`
 
-```text
-ec_delivery
-  id
-  tenant_id
-  delivery_no
-  order_id
-  order_no
-  warehouse_id
-  logistics_company
-  logistics_code
-  tracking_no
-  status
-  shipped_at
-  created_at
+```prisma
+model EcDelivery {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId         BigInt    @map("tenant_id") @db.UnsignedBigInt
+  deliveryNo       String    @map("delivery_no") @db.VarChar(64)
+  orderId          BigInt    @map("order_id") @db.UnsignedBigInt
+  orderNo          String    @map("order_no") @db.VarChar(64)
+  warehouseId      BigInt    @map("warehouse_id") @db.UnsignedBigInt
+  logisticsCompany String    @map("logistics_company") @db.VarChar(128)
+  logisticsCode    String?   @map("logistics_code") @db.VarChar(64)
+  trackingNo       String?   @map("tracking_no") @db.VarChar(128)
+  status           String    @default("shipped") @db.VarChar(32)
+  shippedAt        DateTime? @map("shipped_at") @db.DateTime(3)
+
+  @@unique([tenantId, deliveryNo], map: "uk_ec_delivery_tenant_no")
+  @@index([tenantId, orderId], map: "idx_ec_delivery_tenant_order")
+  @@index([tenantId, trackingNo], map: "idx_ec_delivery_tenant_tracking")
+  @@map("ec_delivery")
+}
 ```
 
 为什么不直接在订单表上写物流单号：
@@ -119,15 +124,20 @@ ec_delivery
 
 ### 发货明细 `ec_delivery_item`
 
-```text
-ec_delivery_item
-  id
-  tenant_id
-  delivery_id
-  order_item_id
-  sku_id
-  qty
-  delivered_qty
+```prisma
+model EcDeliveryItem {
+  id           BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId     BigInt  @map("tenant_id") @db.UnsignedBigInt
+  deliveryId   BigInt  @map("delivery_id") @db.UnsignedBigInt
+  orderItemId  BigInt  @map("order_item_id") @db.UnsignedBigInt
+  skuId        BigInt  @map("sku_id") @db.UnsignedBigInt
+  qty          Decimal @db.Decimal(18, 4)
+  deliveredQty Decimal @default(0) @map("delivered_qty") @db.Decimal(18, 4)
+
+  @@index([tenantId, deliveryId], map: "idx_ec_delivery_item_tenant_delivery")
+  @@index([tenantId, orderItemId], map: "idx_ec_delivery_item_tenant_order_item")
+  @@map("ec_delivery_item")
+}
 ```
 
 为什么发货要有明细：
@@ -138,15 +148,20 @@ ec_delivery_item
 
 ### 物流轨迹 `ec_logistics_track`
 
-```text
-ec_logistics_track
-  id
-  tenant_id
-  delivery_id
-  tracking_no
-  content
-  occurred_at
-  raw_json
+```prisma
+model EcLogisticsTrack {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId   BigInt   @map("tenant_id") @db.UnsignedBigInt
+  deliveryId BigInt   @map("delivery_id") @db.UnsignedBigInt
+  trackingNo String   @map("tracking_no") @db.VarChar(128)
+  content    String   @db.VarChar(500)
+  occurredAt DateTime @default(now()) @map("occurred_at") @db.DateTime(3)
+  rawJson    Json?    @map("raw_json")
+
+  @@index([tenantId, trackingNo], map: "idx_ec_logistics_track_tenant_tracking")
+  @@index([tenantId, deliveryId], map: "idx_ec_logistics_track_tenant_delivery")
+  @@map("ec_logistics_track")
+}
 ```
 
 为什么物流轨迹要单独表：
@@ -526,42 +541,53 @@ async confirmReceipt(member: CurrentMemberPayload, id: string) {
 
 ### 售后主表 `ec_aftersale`
 
-```text
-ec_aftersale
-  id
-  tenant_id
-  aftersale_no
-  order_id
-  order_no
-  member_id
-  type
-  status
-  reason
-  description
-  evidence_images_json
-  apply_refund_amount
-  approved_refund_amount
-  reject_reason
-  approved_at
-  rejected_at
-  finished_at
+```prisma
+model EcAftersale {
+  id                   BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId             BigInt    @map("tenant_id") @db.UnsignedBigInt
+  aftersaleNo          String    @map("aftersale_no") @db.VarChar(64)
+  orderId              BigInt    @map("order_id") @db.UnsignedBigInt
+  orderNo              String    @map("order_no") @db.VarChar(64)
+  memberId             BigInt    @map("member_id") @db.UnsignedBigInt
+  type                 String    @db.VarChar(32)
+  status               String    @default("pending_review") @db.VarChar(32)
+  reason               String    @db.VarChar(128)
+  description          String?   @db.VarChar(500)
+  evidenceImages       Json?     @map("evidence_images_json")
+  applyRefundAmount    Decimal   @default(0) @map("apply_refund_amount") @db.Decimal(18, 2)
+  approvedRefundAmount Decimal   @default(0) @map("approved_refund_amount") @db.Decimal(18, 2)
+  rejectReason         String?   @map("reject_reason") @db.VarChar(255)
+  approvedAt           DateTime? @map("approved_at") @db.DateTime(3)
+  rejectedAt           DateTime? @map("rejected_at") @db.DateTime(3)
+  finishedAt           DateTime? @map("finished_at") @db.DateTime(3)
+
+  @@unique([tenantId, aftersaleNo], map: "uk_ec_aftersale_tenant_no")
+  @@index([tenantId, orderId], map: "idx_ec_aftersale_tenant_order")
+  @@index([tenantId, memberId, status], map: "idx_ec_aftersale_tenant_member_status")
+  @@map("ec_aftersale")
+}
 ```
 
 ### 售后明细 `ec_aftersale_item`
 
-```text
-ec_aftersale_item
-  id
-  tenant_id
-  aftersale_id
-  order_item_id
-  sku_id
-  product_title
-  sku_spec_json
-  image_url
-  qty
-  refund_amount
-  received_qty
+```prisma
+model EcAftersaleItem {
+  id           BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId     BigInt  @map("tenant_id") @db.UnsignedBigInt
+  aftersaleId  BigInt  @map("aftersale_id") @db.UnsignedBigInt
+  orderItemId  BigInt  @map("order_item_id") @db.UnsignedBigInt
+  skuId        BigInt  @map("sku_id") @db.UnsignedBigInt
+  productTitle String  @map("product_title") @db.VarChar(255)
+  skuSpecJson  Json?   @map("sku_spec_json")
+  imageUrl     String? @map("image_url") @db.VarChar(512)
+  qty          Decimal @db.Decimal(18, 4)
+  refundAmount Decimal @default(0) @map("refund_amount") @db.Decimal(18, 2)
+  receivedQty  Decimal @default(0) @map("received_qty") @db.Decimal(18, 4)
+
+  @@index([tenantId, aftersaleId], map: "idx_ec_aftersale_item_tenant_aftersale")
+  @@index([tenantId, orderItemId], map: "idx_ec_aftersale_item_tenant_order_item")
+  @@map("ec_aftersale_item")
+}
 ```
 
 为什么售后要拆主表和明细：
@@ -1480,20 +1506,17 @@ curl -X POST http://localhost:3000/api/admin/v1/aftersales/<aftersaleId>/reject 
 真实项目中可以重点看：
 
 ```text
-server/src/modules/fulfillment/fulfillment.controller.ts
-server/src/modules/fulfillment/fulfillment.service.ts
-server/src/modules/fulfillment/dto/fulfillment-query.dto.ts
-server/src/modules/fulfillment/dto/logistics-track-webhook.dto.ts
 
-server/src/modules/aftersale/aftersale.controller.ts
-server/src/modules/aftersale/aftersale.service.ts
-server/src/modules/aftersale/dto/create-aftersale.dto.ts
-server/src/modules/aftersale/dto/review-aftersale.dto.ts
 
-server/src/modules/payment/payment.service.ts
-server/src/modules/order/order.service.ts
 
-server/prisma/schema.prisma
+
+
+
+
+
+
+
+
   EcDelivery
   EcDeliveryItem
   EcLogisticsCompany
@@ -1513,4 +1536,6 @@ server/prisma/schema.prisma
 | 售后申请 | 整单/部分退款 | 按订单明细校验可退金额 |
 | 退款 | mock 或微信退款 | `PaymentService` 统一处理 |
 | 退款回调 | 教学流程 | 支持微信退款回调 |
+
+
 

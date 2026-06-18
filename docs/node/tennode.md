@@ -1,4 +1,4 @@
-基础能力补充
+﻿基础能力补充
 ```text
 文件上传
   -> 图片访问
@@ -83,26 +83,33 @@ POST /api/admin/v1/scheduler/run-all
 
 ### 文件表设计
 
-核心表可以这样理解：
+核心表以 `schema.prisma` 里的 `SysFile` 为准：
 
-```ts
-type SysFile = {
-  id: string;
-  tenantId: string;
-  fileKey: string;
-  originalName: string;
-  mimeType: string;
-  extension: string | null;
-  size: string;
-  storageProvider: 'local' | 's3';
-  bucket: string | null;
-  objectKey: string;
-  url: string;
-  thumbnailUrl: string | null;
-  status: 'uploaded' | 'deleted' | 'expired';
-  metadataJson: Record<string, unknown> | null;
-  createdAt: string;
-};
+```prisma
+model SysFile {
+  id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId        BigInt    @map("tenant_id") @db.UnsignedBigInt
+  fileKey         String    @map("file_key") @db.VarChar(128)
+  originalName    String    @map("original_name") @db.VarChar(255)
+  mimeType        String    @map("mime_type") @db.VarChar(128)
+  extension       String?   @db.VarChar(32)
+  size            BigInt    @db.UnsignedBigInt
+  storageProvider String    @default("local") @map("storage_provider") @db.VarChar(32)
+  bucket          String?   @db.VarChar(128)
+  objectKey       String    @map("object_key") @db.VarChar(255)
+  url             String    @db.VarChar(512)
+  thumbnailUrl    String?   @map("thumbnail_url") @db.VarChar(512)
+  status          String    @default("uploaded") @db.VarChar(32)
+  metadataJson    Json?     @map("metadata_json")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt       DateTime? @map("deleted_at") @db.DateTime(3)
+  version         Int       @default(1) @db.UnsignedInt
+
+  @@unique([tenantId, fileKey], map: "uk_sys_file_tenant_key")
+  @@index([tenantId, status, createdAt], map: "idx_sys_file_tenant_status_time")
+  @@map("sys_file")
+}
 ```
 
 为什么要这样设计：
@@ -288,19 +295,27 @@ thumbnailUrl: mimeType.startsWith('image/') ? `${url}?thumbnail=1` : null
 
 ### 任务表设计
 
-```ts
-type SysAsyncTask = {
-  id: string;
-  tenantId: string;
-  taskNo: string;
-  type: string;
-  status: 'pending' | 'running' | 'succeeded' | 'failed';
-  progress: number;
-  resultJson: Record<string, unknown> | null;
-  errorMessage: string | null;
-  startedAt: string | null;
-  finishedAt: string | null;
-};
+```prisma
+model SysAsyncTask {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId     BigInt    @map("tenant_id") @db.UnsignedBigInt
+  taskNo       String    @map("task_no") @db.VarChar(64)
+  type         String    @db.VarChar(64)
+  status       String    @default("pending") @db.VarChar(32)
+  progress     Int       @default(0)
+  resultJson   Json?     @map("result_json")
+  errorMessage String?   @map("error_message") @db.VarChar(500)
+  startedAt    DateTime? @map("started_at") @db.DateTime(3)
+  finishedAt   DateTime? @map("finished_at") @db.DateTime(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt    DateTime? @map("deleted_at") @db.DateTime(3)
+  version      Int       @default(1) @db.UnsignedInt
+
+  @@unique([tenantId, taskNo], map: "uk_sys_async_task_tenant_no")
+  @@index([tenantId, status, createdAt], map: "idx_sys_async_task_tenant_status_time")
+  @@map("sys_async_task")
+}
 ```
 
 为什么要单独放一张表：
@@ -497,3 +512,5 @@ async createImportTemplate(dto: DataImportTemplateRequestDto) {
   return { file, columns: template.columns };
 }
 ```
+
+

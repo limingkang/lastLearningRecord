@@ -1,4 +1,4 @@
-前面已经完成：
+﻿前面已经完成：
 ```text
 创建订单
   -> 保存订单主表
@@ -147,28 +147,32 @@ PaymentModule 负责让订单进入已支付
 
 ### `pay_transaction`
 
-```text
-pay_transaction
-  id
-  tenant_id
-  transaction_no
-  out_trade_no
-  order_id
-  order_no
-  member_id
-  channel
-  mch_id
-  app_id
-  prepay_id
-  channel_trade_no
-  payer_openid
-  amount
-  status
-  trade_state
-  paid_at
-  notify_raw_json
-  created_at
-  updated_at
+```prisma
+model PayTransaction {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId       BigInt    @map("tenant_id") @db.UnsignedBigInt
+  transactionNo  String    @map("transaction_no") @db.VarChar(64)
+  outTradeNo     String    @map("out_trade_no") @db.VarChar(64)
+  orderId        BigInt    @map("order_id") @db.UnsignedBigInt
+  orderNo        String    @map("order_no") @db.VarChar(64)
+  memberId       BigInt    @map("member_id") @db.UnsignedBigInt
+  channel        String    @default("wechat") @db.VarChar(32)
+  mchId          String?   @map("mch_id") @db.VarChar(64)
+  appId          String?   @map("app_id") @db.VarChar(128)
+  prepayId       String?   @map("prepay_id") @db.VarChar(128)
+  channelTradeNo String?   @map("channel_trade_no") @db.VarChar(128)
+  payerOpenid    String?   @map("payer_openid") @db.VarChar(128)
+  amount         Decimal   @default(0) @db.Decimal(18, 2)
+  status         String    @default("pending") @db.VarChar(32)
+  tradeState     String?   @map("trade_state") @db.VarChar(32)
+  paidAt         DateTime? @map("paid_at") @db.DateTime(3)
+  notifyRawJson  Json?     @map("notify_raw_json")
+
+  @@unique([tenantId, transactionNo], map: "uk_pay_transaction_tenant_no")
+  @@unique([tenantId, outTradeNo], map: "uk_pay_transaction_tenant_out_trade_no")
+  @@index([channelTradeNo], map: "idx_pay_transaction_channel_trade_no")
+  @@map("pay_transaction")
+}
 ```
 
 字段解释：
@@ -1511,16 +1515,14 @@ POST https://你的域名/api/webhook/wechat-pay/payment
 真实项目中可以重点看：
 
 ```text
-server/src/modules/payment/payment.controller.ts
-server/src/modules/payment/payment.service.ts
-server/src/modules/payment/dto/wechat-prepay.dto.ts
-server/src/common/utils/wechat-pay.ts
 
-server/src/modules/order/order.controller.ts
-server/src/modules/order/order.service.ts
-server/src/modules/marketing/marketing.service.ts
 
-server/prisma/schema.prisma
+
+
+
+
+
+
   PayTransaction
   EcOrder
   EcStockBalance
@@ -1540,4 +1542,6 @@ server/prisma/schema.prisma
 | 支付成功 | 扣库存、改订单 | `applyPaymentSuccess` 事务 |
 | 回调幂等 | 状态判断 | 支付流水 + 订单状态 + 库存锁状态 |
 | 退款 | 下一章强化 | 已有退款请求和退款回调 |
+
+
 

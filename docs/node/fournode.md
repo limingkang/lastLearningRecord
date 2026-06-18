@@ -1,4 +1,4 @@
-为什么商品之后要先做会员，而不是直接做购物车和订单：
+﻿为什么商品之后要先做会员，而不是直接做购物车和订单：
 
 - 购物车必须知道是谁加的商品，也就是 `memberId`。
 - 订单必须知道是谁下的单，也就是 `memberId`。
@@ -70,15 +70,6 @@ ec_member_favorite
 ec_member_points_log
 ```
 
-真实代码位置：
-
-```text
-server/src/modules/auth/auth.service.ts
-server/src/modules/member/member.service.ts
-server/src/common/guards/member-auth.guard.ts
-server/src/modules/redis/redis.service.ts
-server/prisma/schema.prisma
-```
 
 小程序登录会写会员表、微信身份表，并把登录态写入 Redis：
 
@@ -204,7 +195,6 @@ src/
       member.module.ts
       member.controller.ts
       member.service.ts
-      member.repository.ts
       member.types.ts
       dto/
         address-mutation.dto.ts
@@ -270,6 +260,72 @@ ec_member 1 -> N ec_member_wechat
 ec_member 1 -> N ec_member_address
 ec_member 1 -> N ec_member_favorite
 ec_member 1 -> N ec_member_points_log
+```
+
+这些表以 `schema.prisma` 为准，核心模型示例：
+
+```prisma
+model EcMember {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId    BigInt    @map("tenant_id") @db.UnsignedBigInt
+  nickname    String?   @db.VarChar(64)
+  avatarUrl   String?   @map("avatar_url") @db.VarChar(512)
+  phone       String?   @db.VarChar(32)
+  gender      String?   @db.VarChar(16)
+  birthday    DateTime? @db.Date
+  points      Int       @default(0)
+  status      String    @default("enabled") @db.VarChar(32)
+  lastLoginAt DateTime? @map("last_login_at") @db.DateTime(3)
+  deletedAt   DateTime? @map("deleted_at") @db.DateTime(3)
+
+  @@unique([tenantId, phone], map: "uk_ec_member_tenant_phone")
+  @@map("ec_member")
+}
+
+model EcMemberWechat {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId       BigInt    @map("tenant_id") @db.UnsignedBigInt
+  memberId       BigInt    @map("member_id") @db.UnsignedBigInt
+  openid         String    @db.VarChar(128)
+  unionid        String?   @db.VarChar(128)
+  sessionKeyHash String?   @map("session_key_hash") @db.VarChar(255)
+  lastLoginAt    DateTime? @map("last_login_at") @db.DateTime(3)
+
+  @@unique([tenantId, openid], map: "uk_ec_member_wechat_tenant_openid")
+  @@index([unionid], map: "idx_ec_member_wechat_unionid")
+  @@map("ec_member_wechat")
+}
+
+model EcMemberAddress {
+  id            BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId      BigInt  @map("tenant_id") @db.UnsignedBigInt
+  memberId      BigInt  @map("member_id") @db.UnsignedBigInt
+  receiverName  String  @map("receiver_name") @db.VarChar(64)
+  receiverPhone String  @map("receiver_phone") @db.VarChar(32)
+  province      String  @db.VarChar(64)
+  city          String  @db.VarChar(64)
+  district      String  @db.VarChar(64)
+  detail        String  @db.VarChar(255)
+  isDefault     Boolean @default(false) @map("is_default")
+
+  @@index([tenantId, memberId], map: "idx_ec_member_address_tenant_member")
+  @@map("ec_member_address")
+}
+
+model EcMemberPointsLog {
+  id           BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId     BigInt  @map("tenant_id") @db.UnsignedBigInt
+  memberId     BigInt  @map("member_id") @db.UnsignedBigInt
+  bizType      String  @map("biz_type") @db.VarChar(64)
+  bizId        BigInt? @map("biz_id") @db.UnsignedBigInt
+  direction    String  @db.VarChar(16)
+  points       Int
+  balanceAfter Int     @map("balance_after")
+  createdAt    DateTime @default(now()) @map("created_at") @db.DateTime(3)
+
+  @@index([tenantId, memberId, createdAt], map: "idx_ec_member_points_log_tenant_member_time")
+  @@map("ec_member_points_log")
+}
 ```
 
 为什么不直接用微信 `openid` 当会员 id：
@@ -559,7 +615,7 @@ export class MemberQueryDto {
 
 ## 实现会员仓储
 
-当前项目没有 `member.repository.ts` 这层内存仓储。会员、微信身份、地址、收藏、积分流水都通过 `MemberService` 直接注入 `PrismaService` 读写 MySQL。
+会员、微信身份、地址、收藏、积分流水都通过 `MemberService` 直接注入 `PrismaService` 读写 MySQL。
 
 ### `member.service.ts` 的存储入口
 
@@ -1159,10 +1215,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-
-type SessionStore = {
-  has(scope: 'member', tenantId: string, actorId: string): Promise<boolean>;
-};
+import { RedisService } from '../../modules/redis/redis.service';
 
 type MemberTokenPayload = {
   sub: string;
@@ -1175,7 +1228,7 @@ type MemberTokenPayload = {
 export class MemberAuthGuard implements CanActivate {
   constructor(
     private readonly jwtService: JwtService,
-    private readonly sessionStore: SessionStore,
+    private readonly redisService: RedisService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -1195,7 +1248,7 @@ export class MemberAuthGuard implements CanActivate {
       throw new UnauthorizedException('会员身份无效');
     }
 
-    const sessionAlive = await this.sessionStore.has(
+    const sessionAlive = await this.redisService.hasLoginSession(
       'member',
       payload.tenantId,
       payload.sub,
@@ -1777,11 +1830,10 @@ export class AuthModule {}
 
 - 后面订单模块要读取会员地址。
 - 后台会员列表、地址、收藏都应该走 Service 的业务规则。
-- 当前项目没有 `MemberRepository`，会员数据由 `PrismaService` 统一读写 MySQL。
+- 会员数据由 `MemberService` 通过 `PrismaService` 统一读写 MySQL。
 
-真实项目里不要随便导出 Repository，优先导出 Service：
+真实项目里优先导出 Service，不要让外部模块绕过业务规则：
 
-- Repository 太底层，外部模块容易绕过业务规则。
 - Service 可以保证“创建会员送积分”“地址数量限制”等规则被执行。
 
 ## 真实微信登录如何从 mock 切到 real
@@ -2089,21 +2141,19 @@ curl http://localhost:3000/api/app/v1/members/points \
 真实项目中可以重点看：
 
 ```text
-server/src/modules/auth/auth.controller.ts
-server/src/modules/auth/auth.service.ts
-server/src/modules/auth/dto/miniapp-login.dto.ts
-server/src/modules/auth/dto/bind-phone.dto.ts
-server/src/common/guards/member-auth.guard.ts
-server/src/common/decorators/current-member.decorator.ts
 
-server/src/modules/member/member.controller.ts
-server/src/modules/member/member.service.ts
-server/src/modules/member/dto/address-mutation.dto.ts
-server/src/modules/member/dto/member-favorite-query.dto.ts
-server/src/modules/member/dto/member-points-query.dto.ts
-server/src/modules/member/dto/member-query.dto.ts
 
-server/prisma/schema.prisma
+
+
+
+
+
+
+
+
+
+
+
   EcMember
   EcMemberWechat
   EcMemberAddress
@@ -2122,4 +2172,6 @@ server/prisma/schema.prisma
 | 地址默认 | 数据库事务 | 当前项目真实实现 |
 | 收藏防重复 | 唯一索引/条件查询 | 当前项目真实实现 |
 | 后台权限 | 示例 AdminAuthGuard | RBAC 权限点 |
+
+
 

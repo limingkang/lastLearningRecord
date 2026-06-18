@@ -1,4 +1,4 @@
-现在开始做第一个真正的业务模块：商品中心。从分类品牌 CRUD 到 SPU/SKU 和上下架，这是电商 ERP 的基础。后续购物车、订单、库存、营销、搜索、报表都会依赖商品数据。会一步步实现：
+﻿现在开始做第一个真正的业务模块：商品中心。从分类品牌 CRUD 到 SPU/SKU 和上下架，这是电商 ERP 的基础。后续购物车、订单、库存、营销、搜索、报表都会依赖商品数据。会一步步实现：
 
 ```text
 分类 CRUD
@@ -58,13 +58,53 @@ ec_shop_product
 ec_product_search_index
 ```
 
-真实代码位置：
+核心表以 `schema.prisma` 为准，例如：
 
-```text
-server/src/modules/catalog/catalog.service.ts
-server/src/modules/search/search.service.ts
-server/prisma/schema.prisma
+```prisma
+model EcCategory {
+  id       BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId BigInt  @map("tenant_id") @db.UnsignedBigInt
+  parentId BigInt? @map("parent_id") @db.UnsignedBigInt
+  name     String  @db.VarChar(100)
+  code     String  @db.VarChar(64)
+  level    Int     @default(1)
+  path     String  @default("") @db.VarChar(255)
+  status   String  @default("enabled") @db.VarChar(32)
+
+  @@unique([tenantId, code], map: "uk_ec_category_tenant_code")
+  @@index([tenantId, parentId], map: "idx_ec_category_tenant_parent")
+  @@map("ec_category")
+}
+
+model EcProduct {
+  id         BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId   BigInt  @map("tenant_id") @db.UnsignedBigInt
+  categoryId BigInt? @map("category_id") @db.UnsignedBigInt
+  brandId    BigInt? @map("brand_id") @db.UnsignedBigInt
+  productNo  String  @map("product_no") @db.VarChar(64)
+  title      String  @db.VarChar(255)
+  saleStatus String  @default("off_sale") @map("sale_status") @db.VarChar(32)
+
+  @@unique([tenantId, productNo], map: "uk_ec_product_tenant_product_no")
+  @@index([tenantId, categoryId], map: "idx_ec_product_tenant_category")
+  @@map("ec_product")
+}
+
+model EcSku {
+  id        BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId  BigInt  @map("tenant_id") @db.UnsignedBigInt
+  productId BigInt  @map("product_id") @db.UnsignedBigInt
+  skuNo     String  @map("sku_no") @db.VarChar(64)
+  specJson  Json?   @map("spec_json")
+  salePrice Decimal @default(0) @map("sale_price") @db.Decimal(18, 4)
+  status    String  @default("enabled") @db.VarChar(32)
+
+  @@unique([tenantId, skuNo], map: "uk_ec_sku_tenant_sku_no")
+  @@index([tenantId, productId], map: "idx_ec_sku_tenant_product")
+  @@map("ec_sku")
+}
 ```
+
 
 例如分类查询直接读 `ec_category`：
 
@@ -123,7 +163,6 @@ src/
       catalog.module.ts
       catalog.controller.ts
       catalog.service.ts
-      catalog.repository.ts
       catalog.types.ts
       dto/
         category.dto.ts
@@ -577,35 +616,29 @@ export class ProductMutationDto {
 
 真实项目金额不能用浮点数，应该使用数据库 `DECIMAL`，服务端用 Decimal 类型或字符串处理。
 
-## CatalogRepository
+## Prisma 数据访问示例
 
-### 基础结构
+下面这一段是为了讲清楚分类、品牌、商品、SKU 的数据操作逻辑。当前项目商品中心由 `CatalogService` 直接注入 `PrismaService` 读写 MySQL。
+
+### Prisma 入口
 
 ```ts
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Brand, Category, Product, ProductSearchIndex } from './catalog.types';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class CatalogRepository {
-  private categories: Category[] = [];
-  private brands: Brand[] = [];
-  private products: Product[] = [];
-  private searchIndexes: ProductSearchIndex[] = [];
+export class CatalogService {
+  constructor(private readonly prisma: PrismaService) {}
 
-  private ids = {
-    category: 1,
-    brand: 1,
-    product: 1,
-    sku: 1,
-    image: 1,
-  };
-
-  private nextId(type: keyof typeof this.ids) {
-    return String(this.ids[type]++);
-  }
-
-  private now() {
-    return new Date();
+  private async getDefaultTenantId(): Promise<bigint> {
+    const tenant = await this.prisma.sysTenant.findFirst({
+      where: { code: 'default', deletedAt: null },
+    });
+    if (!tenant) {
+      throw new NotFoundException('默认商户不存在，请先执行 seed');
+    }
+    return tenant.id;
   }
 }
 ```
@@ -614,56 +647,109 @@ export class CatalogRepository {
 
 ```ts
 async listCategories(query: { keyword?: string; status?: string } = {}) {
-  return this.categories
-    .filter((item) => {
-      if (item.deletedAt) return false;
-      if (query.status && item.status !== query.status) return false;
-      if (query.keyword) {
-        return item.name.includes(query.keyword) || item.code.includes(query.keyword);
-      }
-      return true;
-    })
-    .sort((a, b) => a.sortNo - b.sortNo);
+  const tenantId = await this.getDefaultTenantId();
+  const where: Prisma.EcCategoryWhereInput = {
+    tenantId,
+    deletedAt: null,
+    ...(query.status ? { status: query.status } : {}),
+  };
+  if (query.keyword) {
+    where.OR = [
+      { name: { contains: query.keyword } },
+      { code: { contains: query.keyword } },
+    ];
+  }
+
+  return this.prisma.ecCategory.findMany({
+    where,
+    orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+  });
 }
 
 async getCategory(id: string) {
-  const category = this.categories.find((item) => item.id === id && !item.deletedAt);
+  const tenantId = await this.getDefaultTenantId();
+  const category = await this.prisma.ecCategory.findFirst({
+    where: {
+      tenantId,
+      id: BigInt(id),
+      deletedAt: null,
+    },
+  });
   if (!category) {
-    throw new NotFoundException('category not found');
+    throw new NotFoundException('分类不存在');
   }
   return category;
 }
 
-async createCategory(input: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>) {
-  const existed = this.categories.find(
-    (item) => item.code === input.code && !item.deletedAt,
-  );
+async createCategory(input: {
+  parentId?: string;
+  name: string;
+  code: string;
+  imageUrl?: string;
+  sortNo?: number;
+  status?: string;
+}) {
+  const tenantId = await this.getDefaultTenantId();
+  const existed = await this.prisma.ecCategory.findFirst({
+    where: { tenantId, code: input.code, deletedAt: null },
+  });
   if (existed) {
-    throw new ConflictException('category code already exists');
+    throw new BadRequestException('分类编码已存在');
   }
+  const parent = input.parentId ? await this.getCategory(input.parentId) : null;
 
-  const now = this.now();
-  const category: Category = {
-    ...input,
-    id: this.nextId('category'),
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  this.categories.push(category);
-  return category;
+  return this.prisma.ecCategory.create({
+    data: {
+      tenantId,
+      parentId: parent?.id || null,
+      name: input.name,
+      code: input.code,
+      level: parent ? parent.level + 1 : 1,
+      path: parent ? `${parent.path}/${input.code}` : input.code,
+      imageUrl: input.imageUrl,
+      sortNo: input.sortNo || 0,
+      status: input.status || 'enabled',
+    },
+  });
 }
 
-async updateCategory(id: string, patch: Partial<Category>) {
+async updateCategory(id: string, patch: {
+  name?: string;
+  imageUrl?: string;
+  sortNo?: number;
+  status?: string;
+}) {
   const category = await this.getCategory(id);
-  Object.assign(category, patch, { updatedAt: this.now() });
-  return category;
+  return this.prisma.ecCategory.update({
+    where: { id: category.id },
+    data: {
+      name: patch.name ?? category.name,
+      imageUrl: patch.imageUrl ?? category.imageUrl,
+      sortNo: patch.sortNo ?? category.sortNo,
+      status: patch.status ?? category.status,
+    },
+  });
 }
 
 async deleteCategory(id: string) {
+  const tenantId = await this.getDefaultTenantId();
   const category = await this.getCategory(id);
-  category.deletedAt = this.now();
-  category.updatedAt = this.now();
+  const childCount = await this.prisma.ecCategory.count({
+    where: { tenantId, parentId: category.id, deletedAt: null },
+  });
+  if (childCount > 0) {
+    throw new BadRequestException('请先删除子分类');
+  }
+  const productCount = await this.prisma.ecProduct.count({
+    where: { tenantId, categoryId: category.id, deletedAt: null },
+  });
+  if (productCount > 0) {
+    throw new BadRequestException('分类下仍有商品，不能删除');
+  }
+  await this.prisma.ecCategory.update({
+    where: { id: category.id },
+    data: { deletedAt: new Date(), status: 'disabled' },
+  });
   return { success: true };
 }
 ```
@@ -680,54 +766,98 @@ async deleteCategory(id: string) {
 
 ```ts
 async listBrands(query: { keyword?: string; status?: string } = {}) {
-  return this.brands
-    .filter((item) => {
-      if (item.deletedAt) return false;
-      if (query.status && item.status !== query.status) return false;
-      if (query.keyword) {
-        return item.name.includes(query.keyword) || item.code.includes(query.keyword);
-      }
-      return true;
-    })
-    .sort((a, b) => a.sortNo - b.sortNo);
+  const tenantId = await this.getDefaultTenantId();
+  const where: Prisma.EcBrandWhereInput = {
+    tenantId,
+    deletedAt: null,
+    ...(query.status ? { status: query.status } : {}),
+  };
+  if (query.keyword) {
+    where.OR = [
+      { name: { contains: query.keyword } },
+      { code: { contains: query.keyword } },
+    ];
+  }
+
+  return this.prisma.ecBrand.findMany({
+    where,
+    orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+  });
 }
 
 async getBrand(id: string) {
-  const brand = this.brands.find((item) => item.id === id && !item.deletedAt);
+  const tenantId = await this.getDefaultTenantId();
+  const brand = await this.prisma.ecBrand.findFirst({
+    where: {
+      tenantId,
+      id: BigInt(id),
+      deletedAt: null,
+    },
+  });
   if (!brand) {
-    throw new NotFoundException('brand not found');
+    throw new NotFoundException('品牌不存在');
   }
   return brand;
 }
 
-async createBrand(input: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>) {
-  const existed = this.brands.find((item) => item.code === input.code && !item.deletedAt);
+async createBrand(input: {
+  name: string;
+  code: string;
+  logoUrl?: string;
+  sortNo?: number;
+  status?: string;
+}) {
+  const tenantId = await this.getDefaultTenantId();
+  const existed = await this.prisma.ecBrand.findFirst({
+    where: { tenantId, code: input.code, deletedAt: null },
+  });
   if (existed) {
-    throw new ConflictException('brand code already exists');
+    throw new BadRequestException('品牌编码已存在');
   }
 
-  const now = this.now();
-  const brand: Brand = {
-    ...input,
-    id: this.nextId('brand'),
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  this.brands.push(brand);
-  return brand;
+  return this.prisma.ecBrand.create({
+    data: {
+      tenantId,
+      name: input.name,
+      code: input.code,
+      logoUrl: input.logoUrl,
+      sortNo: input.sortNo || 0,
+      status: input.status || 'enabled',
+    },
+  });
 }
 
-async updateBrand(id: string, patch: Partial<Brand>) {
+async updateBrand(id: string, patch: {
+  name?: string;
+  logoUrl?: string;
+  sortNo?: number;
+  status?: string;
+}) {
   const brand = await this.getBrand(id);
-  Object.assign(brand, patch, { updatedAt: this.now() });
-  return brand;
+  return this.prisma.ecBrand.update({
+    where: { id: brand.id },
+    data: {
+      name: patch.name ?? brand.name,
+      logoUrl: patch.logoUrl ?? brand.logoUrl,
+      sortNo: patch.sortNo ?? brand.sortNo,
+      status: patch.status ?? brand.status,
+    },
+  });
 }
 
 async deleteBrand(id: string) {
+  const tenantId = await this.getDefaultTenantId();
   const brand = await this.getBrand(id);
-  brand.deletedAt = this.now();
-  brand.updatedAt = this.now();
+  const productCount = await this.prisma.ecProduct.count({
+    where: { tenantId, brandId: brand.id, deletedAt: null },
+  });
+  if (productCount > 0) {
+    throw new BadRequestException('品牌下仍有商品，不能删除');
+  }
+  await this.prisma.ecBrand.update({
+    where: { id: brand.id },
+    data: { deletedAt: new Date(), status: 'disabled' },
+  });
   return { success: true };
 }
 ```
@@ -741,96 +871,204 @@ async listProducts(query: {
   brandId?: string;
   saleStatus?: string;
 } = {}) {
-  return this.products.filter((product) => {
-    if (product.deletedAt) return false;
-    if (query.categoryId && product.categoryId !== query.categoryId) return false;
-    if (query.brandId && product.brandId !== query.brandId) return false;
-    if (query.saleStatus && product.saleStatus !== query.saleStatus) return false;
-    if (query.keyword) {
-      return (
-        product.title.includes(query.keyword) ||
-        product.productNo.includes(query.keyword) ||
-        product.searchKeywords?.includes(query.keyword)
-      );
-    }
-    return true;
+  const tenantId = await this.getDefaultTenantId();
+  const where: Prisma.EcProductWhereInput = {
+    tenantId,
+    deletedAt: null,
+    ...(query.categoryId ? { categoryId: BigInt(query.categoryId) } : {}),
+    ...(query.brandId ? { brandId: BigInt(query.brandId) } : {}),
+    ...(query.saleStatus ? { saleStatus: query.saleStatus } : {}),
+  };
+  if (query.keyword) {
+    where.OR = [
+      { title: { contains: query.keyword } },
+      { productNo: { contains: query.keyword } },
+      { searchKeywords: { contains: query.keyword } },
+    ];
+  }
+
+  return this.prisma.ecProduct.findMany({
+    where,
+    include: {
+      category: true,
+      brand: true,
+      skus: { where: { deletedAt: null }, orderBy: { id: 'asc' } },
+    },
+    orderBy: [{ sortNo: 'asc' }, { createdAt: 'desc' }],
   });
 }
 
 async getProduct(id: string) {
-  const product = this.products.find((item) => item.id === id && !item.deletedAt);
+  const tenantId = await this.getDefaultTenantId();
+  const product = await this.prisma.ecProduct.findFirst({
+    where: {
+      tenantId,
+      id: BigInt(id),
+      deletedAt: null,
+    },
+    include: {
+      category: true,
+      brand: true,
+      images: {
+        where: { deletedAt: null },
+        orderBy: { sortNo: 'asc' },
+      },
+      skus: {
+        where: { deletedAt: null },
+        include: { balances: { where: { deletedAt: null } } },
+        orderBy: { id: 'asc' },
+      },
+    },
+  });
   if (!product) {
-    throw new NotFoundException('product not found');
+    throw new NotFoundException('商品不存在');
   }
   return product;
 }
 
-async createProduct(input: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'salesCount'>) {
-  const existed = this.products.find(
-    (item) => item.productNo === input.productNo && !item.deletedAt,
-  );
+async createProduct(input: {
+  productNo: string;
+  categoryId?: string;
+  brandId?: string;
+  title: string;
+  subTitle?: string;
+  mainImageUrl?: string;
+  detailHtml?: string;
+  saleStatus?: string;
+  searchKeywords?: string;
+  skus: Array<{
+    skuNo: string;
+    spec?: Record<string, unknown>;
+    imageUrl?: string;
+    marketPrice: number | string;
+    salePrice: number | string;
+    costPrice?: number | string;
+    stockQty?: number | string;
+    status?: string;
+  }>;
+  images?: Array<{ url: string; type?: string; sortNo?: number }>;
+}) {
+  const tenantId = await this.getDefaultTenantId();
+  const warehouse = await this.getDefaultWarehouse(tenantId);
+  const existed = await this.prisma.ecProduct.findFirst({
+    where: { tenantId, productNo: input.productNo, deletedAt: null },
+  });
   if (existed) {
-    throw new ConflictException('productNo already exists');
+    throw new BadRequestException('商品编号已存在');
   }
 
   const skuNos = input.skus.map((sku) => sku.skuNo);
   const duplicatedSkuNo = skuNos.find((skuNo, index) => skuNos.indexOf(skuNo) !== index);
   if (duplicatedSkuNo) {
-    throw new ConflictException(`duplicated skuNo: ${duplicatedSkuNo}`);
+    throw new BadRequestException(`SKU 编号重复: ${duplicatedSkuNo}`);
   }
 
-  const now = this.now();
-  const product: Product = {
-    ...input,
-    id: this.nextId('product'),
-    salesCount: 0,
-    createdAt: now,
-    updatedAt: now,
-    skus: input.skus.map((sku) => ({
-      ...sku,
-      id: this.nextId('sku'),
-    })),
-    images: input.images.map((image) => ({
-      ...image,
-      id: this.nextId('image'),
-    })),
-  };
+  const product = await this.prisma.$transaction(async (tx) => {
+    const createdProduct = await tx.ecProduct.create({
+      data: {
+        tenantId,
+        categoryId: input.categoryId ? BigInt(input.categoryId) : null,
+        brandId: input.brandId ? BigInt(input.brandId) : null,
+        productNo: input.productNo,
+        title: input.title,
+        subTitle: input.subTitle,
+        mainImageUrl: input.mainImageUrl,
+        detailHtml: input.detailHtml,
+        saleStatus: input.saleStatus || 'off_sale',
+        auditStatus: 'approved',
+        searchKeywords: input.searchKeywords,
+      },
+    });
 
-  this.products.push(product);
-  return product;
-}
+    for (const [index, sku] of input.skus.entries()) {
+      const createdSku = await tx.ecSku.create({
+        data: {
+          tenantId,
+          productId: createdProduct.id,
+          skuNo: sku.skuNo,
+          specJson: sku.spec || {},
+          imageUrl: sku.imageUrl || input.mainImageUrl,
+          marketPrice: String(sku.marketPrice),
+          salePrice: String(sku.salePrice),
+          costPrice: sku.costPrice === undefined ? null : String(sku.costPrice),
+          status: sku.status || 'enabled',
+        },
+      });
 
-async updateProduct(id: string, patch: Omit<Product, 'id' | 'createdAt' | 'updatedAt' | 'salesCount'>) {
-  const product = await this.getProduct(id);
+      const stockQty = String(sku.stockQty || 0);
+      await tx.ecStockBalance.create({
+        data: {
+          tenantId,
+          warehouseId: warehouse.id,
+          skuId: createdSku.id,
+          onHandQty: stockQty,
+          availableQty: stockQty,
+          lockedQty: '0',
+          warningQty: '0',
+        },
+      });
+    }
 
-  Object.assign(product, {
-    ...patch,
-    updatedAt: this.now(),
-    skus: patch.skus.map((sku) => ({
-      ...sku,
-      id: sku.id || this.nextId('sku'),
-    })),
-    images: patch.images.map((image) => ({
-      ...image,
-      id: image.id || this.nextId('image'),
-    })),
+    for (const [index, image] of (input.images || []).entries()) {
+      await tx.ecProductImage.create({
+        data: {
+          tenantId,
+          productId: createdProduct.id,
+          url: image.url,
+          type: image.type || 'gallery',
+          sortNo: image.sortNo ?? index,
+        },
+      });
+    }
+
+    return createdProduct;
   });
 
-  return product;
+  return this.getProduct(product.id.toString());
+}
+
+async updateProduct(id: string, patch: {
+  categoryId?: string;
+  brandId?: string;
+  title: string;
+  subTitle?: string;
+  mainImageUrl?: string;
+  detailHtml?: string;
+  saleStatus?: string;
+  searchKeywords?: string;
+}) {
+  const product = await this.getProduct(id);
+  await this.prisma.ecProduct.update({
+    where: { id: product.id },
+    data: {
+      categoryId: patch.categoryId ? BigInt(patch.categoryId) : null,
+      brandId: patch.brandId ? BigInt(patch.brandId) : null,
+      title: patch.title,
+      subTitle: patch.subTitle,
+      mainImageUrl: patch.mainImageUrl,
+      detailHtml: patch.detailHtml,
+      saleStatus: patch.saleStatus || product.saleStatus,
+      searchKeywords: patch.searchKeywords,
+    },
+  });
+
+  return this.getProduct(id);
 }
 
 async updateProductSaleStatus(id: string, saleStatus: 'on_sale' | 'off_sale') {
   const product = await this.getProduct(id);
-  product.saleStatus = saleStatus;
-  product.updatedAt = this.now();
-  return product;
+  await this.prisma.ecProduct.update({
+    where: { id: product.id },
+    data: { saleStatus },
+  });
+  return this.getProduct(id);
 }
 ```
 
 说明：
 
-- 为了简单`updateProduct`直接整体替换 SKU 和图片。
-- 真实项目中要更谨慎：已有 SKU 可能被订单引用，不能随意删除或改编号。
+- 当前项目创建商品时会同时创建 SKU、初始库存和商品图片。
+- 更新商品时要谨慎处理已有 SKU：SKU 可能已经被订单、库存流水、售后引用，不能随意物理删除或改编号。
 
 为什么商品编号和 SKU 编号要唯一：
 
@@ -848,75 +1086,80 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { BrandMutationDto, BrandQueryDto } from './dto/brand.dto';
 import { CategoryMutationDto, CategoryQueryDto } from './dto/category.dto';
 import { ProductMutationDto, ProductQueryDto } from './dto/product.dto';
-import { CatalogRepository } from './catalog.repository';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CatalogService {
-  constructor(private readonly repository: CatalogRepository) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async listCategories(query: CategoryQueryDto) {
-    const categories = await this.repository.listCategories(query);
-    return this.buildCategoryTree(categories);
+    const tenantId = await this.getDefaultTenantId();
+    return this.prisma.ecCategory.findMany({
+      where: {
+        tenantId,
+        deletedAt: null,
+        ...(query.status ? { status: query.status } : {}),
+      },
+      orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+    });
   }
 
   getCategory(id: string) {
-    return this.repository.getCategory(id);
+    return this.prisma.ecCategory.findFirst({
+      where: { id: BigInt(id), deletedAt: null },
+    });
   }
 
   async createCategory(dto: CategoryMutationDto) {
     const parent = dto.parentId
-      ? await this.repository.getCategory(dto.parentId)
+      ? await this.getCategory(dto.parentId)
       : null;
 
     const level = parent ? parent.level + 1 : 1;
-    const path = parent ? `${parent.path}/${parent.id}` : '';
+    const path = parent ? `${parent.path}/${dto.code}` : dto.code;
+    const tenantId = await this.getDefaultTenantId();
 
-    return this.repository.createCategory({
-      parentId: dto.parentId,
-      name: dto.name,
-      code: dto.code,
-      level,
-      path,
-      imageUrl: dto.imageUrl,
-      sortNo: dto.sortNo,
-      status: dto.status,
+    return this.prisma.ecCategory.create({
+      data: {
+        tenantId,
+        parentId: parent?.id || null,
+        name: dto.name,
+        code: dto.code,
+        level,
+        path,
+        imageUrl: dto.imageUrl,
+        sortNo: dto.sortNo,
+        status: dto.status || 'enabled',
+      },
     });
   }
 
   async updateCategory(id: string, dto: CategoryMutationDto) {
-    return this.repository.updateCategory(id, {
-      name: dto.name,
-      imageUrl: dto.imageUrl,
-      sortNo: dto.sortNo,
-      status: dto.status,
+    const category = await this.getCategory(id);
+    if (!category) {
+      throw new BadRequestException('category not found');
+    }
+    return this.prisma.ecCategory.update({
+      where: { id: category.id },
+      data: {
+        name: dto.name,
+        imageUrl: dto.imageUrl,
+        sortNo: dto.sortNo,
+        status: dto.status,
+      },
     });
   }
 
-  deleteCategory(id: string) {
-    return this.repository.deleteCategory(id);
-  }
-
-  private buildCategoryTree(categories: Array<{
-    id: string;
-    parentId?: string;
-    sortNo: number;
-  }>) {
-    const cloned = categories
-      .map((item) => ({ ...item, children: [] as unknown[] }))
-      .sort((a, b) => a.sortNo - b.sortNo);
-
-    const map = new Map(cloned.map((item) => [item.id, item]));
-    const roots: unknown[] = [];
-
-    for (const category of cloned) {
-      if (category.parentId && map.has(category.parentId)) {
-        map.get(category.parentId)!.children.push(category);
-      } else {
-        roots.push(category);
-      }
+  async deleteCategory(id: string) {
+    const category = await this.getCategory(id);
+    if (!category) {
+      throw new BadRequestException('category not found');
     }
-
-    return roots;
+    await this.prisma.ecCategory.update({
+      where: { id: category.id },
+      data: { deletedAt: new Date(), status: 'disabled' },
+    });
+    return { success: true };
   }
 }
 ```
@@ -931,34 +1174,52 @@ export class CatalogService {
 
 ```ts
 listBrands(query: BrandQueryDto) {
-  return this.repository.listBrands(query);
+  return this.prisma.ecBrand.findMany({
+    where: {
+      deletedAt: null,
+      ...(query.status ? { status: query.status } : {}),
+    },
+    orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+  });
 }
 
 getBrand(id: string) {
-  return this.repository.getBrand(id);
+  return this.prisma.ecBrand.findFirst({
+    where: { id: BigInt(id), deletedAt: null },
+  });
 }
 
-createBrand(dto: BrandMutationDto) {
-  return this.repository.createBrand({
-    name: dto.name,
-    code: dto.code,
-    logoUrl: dto.logoUrl,
-    sortNo: dto.sortNo,
-    status: dto.status,
+async createBrand(dto: BrandMutationDto) {
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.ecBrand.create({
+    data: {
+      tenantId,
+      name: dto.name,
+      code: dto.code,
+      logoUrl: dto.logoUrl,
+      sortNo: dto.sortNo,
+      status: dto.status || 'enabled',
+    },
   });
 }
 
 updateBrand(id: string, dto: BrandMutationDto) {
-  return this.repository.updateBrand(id, {
-    name: dto.name,
-    logoUrl: dto.logoUrl,
-    sortNo: dto.sortNo,
-    status: dto.status,
+  return this.prisma.ecBrand.update({
+    where: { id: BigInt(id) },
+    data: {
+      name: dto.name,
+      logoUrl: dto.logoUrl,
+      sortNo: dto.sortNo,
+      status: dto.status,
+    },
   });
 }
 
 deleteBrand(id: string) {
-  return this.repository.deleteBrand(id);
+  return this.prisma.ecBrand.update({
+    where: { id: BigInt(id) },
+    data: { deletedAt: new Date(), status: 'disabled' },
+  });
 }
 ```
 
@@ -966,22 +1227,22 @@ deleteBrand(id: string) {
 
 ```ts
 async listAdminProducts(query: ProductQueryDto) {
-  return this.repository.listProducts(query);
+  return this.getProducts(query);
 }
 
 async listAppProducts(query: ProductQueryDto) {
-  return this.repository.listProducts({
+  return this.getProducts({
     ...query,
     saleStatus: 'on_sale',
   });
 }
 
 async getAdminProduct(id: string) {
-  return this.repository.getProduct(id);
+  return this.getProductDetail(id, false);
 }
 
 async getAppProduct(id: string) {
-  const product = await this.repository.getProduct(id);
+  const product = await this.getProductDetail(id, true);
   if (product.saleStatus !== 'on_sale') {
     throw new BadRequestException('product is not on sale');
   }
@@ -995,20 +1256,7 @@ async createProduct(dto: ProductMutationDto) {
   }
   this.ensureValidSkuPrices(dto.skus);
 
-  return this.repository.createProduct({
-    productNo: dto.productNo,
-    categoryId: dto.categoryId,
-    brandId: dto.brandId,
-    title: dto.title,
-    subTitle: dto.subTitle,
-    mainImageUrl: dto.mainImageUrl,
-    detailHtml: dto.detailHtml,
-    saleStatus: 'draft',
-    sortNo: dto.sortNo,
-    searchKeywords: dto.searchKeywords,
-    skus: dto.skus,
-    images: dto.images,
-  });
+  return this.createProductWithPrisma(dto);
 }
 
 async updateProduct(id: string, dto: ProductMutationDto) {
@@ -1018,29 +1266,28 @@ async updateProduct(id: string, dto: ProductMutationDto) {
   }
   this.ensureValidSkuPrices(dto.skus);
 
-  const current = await this.repository.getProduct(id);
+  const current = await this.getProductDetail(id, false);
   if (current.saleStatus === 'on_sale') {
     throw new BadRequestException('please off-sale product before editing');
   }
 
-  return this.repository.updateProduct(id, {
-    productNo: current.productNo,
-    categoryId: dto.categoryId,
-    brandId: dto.brandId,
-    title: dto.title,
-    subTitle: dto.subTitle,
-    mainImageUrl: dto.mainImageUrl,
-    detailHtml: dto.detailHtml,
-    saleStatus: current.saleStatus,
-    sortNo: dto.sortNo,
-    searchKeywords: dto.searchKeywords,
-    skus: dto.skus,
-    images: dto.images,
+  await this.prisma.ecProduct.update({
+    where: { id: BigInt(id) },
+    data: {
+      categoryId: dto.categoryId ? BigInt(dto.categoryId) : null,
+      brandId: dto.brandId ? BigInt(dto.brandId) : null,
+      title: dto.title,
+      subTitle: dto.subTitle,
+      mainImageUrl: dto.mainImageUrl,
+      detailHtml: dto.detailHtml,
+      searchKeywords: dto.searchKeywords,
+    },
   });
+  return this.getProductDetail(id, false);
 }
 
 async onSaleProduct(id: string) {
-  const product = await this.repository.getProduct(id);
+  const product = await this.getProductDetail(id, false);
   if (product.skus.length === 0) {
     throw new BadRequestException('product must have at least one sku');
   }
@@ -1051,22 +1298,28 @@ async onSaleProduct(id: string) {
     throw new BadRequestException('product must have enabled sku');
   }
 
-  return this.repository.updateProductSaleStatus(id, 'on_sale');
+  return this.prisma.ecProduct.update({
+    where: { id: BigInt(id) },
+    data: { saleStatus: 'on_sale' },
+  });
 }
 
 async offSaleProduct(id: string) {
-  return this.repository.updateProductSaleStatus(id, 'off_sale');
+  return this.prisma.ecProduct.update({
+    where: { id: BigInt(id) },
+    data: { saleStatus: 'off_sale' },
+  });
 }
 
 private async ensureCategoryEnabled(categoryId: string) {
-  const category = await this.repository.getCategory(categoryId);
+  const category = await this.getCategory(categoryId);
   if (category.status !== 'enabled') {
     throw new BadRequestException('category is disabled');
   }
 }
 
 private async ensureBrandEnabled(brandId: string) {
-  const brand = await this.repository.getBrand(brandId);
+  const brand = await this.getBrand(brandId);
   if (brand.status !== 'enabled') {
     throw new BadRequestException('brand is disabled');
   }
@@ -1254,23 +1507,13 @@ export class AppCatalogController {
 
 ```ts
 import { Module } from '@nestjs/common';
-import { CatalogRepository } from './catalog.repository';
 import { CatalogService } from './catalog.service';
-import { AdminCatalogController, AppCatalogController } from './catalog.controller';
+import { CatalogController } from './catalog.controller';
 
 @Module({
-  controllers: [
-    AdminCatalogController,
-    AppCatalogController,
-  ],
-  providers: [
-    CatalogRepository,
-    CatalogService,
-  ],
-  exports: [
-    CatalogRepository,
-    CatalogService,
-  ],
+  controllers: [CatalogController],
+  providers: [CatalogService],
+  exports: [CatalogService],
 })
 export class CatalogModule {}
 ```
@@ -1293,26 +1536,73 @@ export class CatalogModule {}
 
 先做一个简单搜索索引。
 
-### Repository 增加索引方法
+### Service 增加索引方法
 
 ```ts
-async upsertSearchIndex(index: ProductSearchIndex) {
-  const existed = this.searchIndexes.find((item) => item.productId === index.productId);
+private async upsertProductIndex(tenantId: bigint, product: ProductForIndex) {
+  const prices = product.skus.map((sku) => Number(sku.salePrice));
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+  const skuIds = product.skus.map((sku) => sku.id.toString());
+  const searchText = [
+    product.productNo,
+    product.title,
+    product.subTitle,
+    product.searchKeywords,
+    product.category?.name,
+    product.category?.path,
+    product.brand?.name,
+    ...product.skus.map((sku) => sku.skuNo),
+  ]
+    .filter((item): item is string => Boolean(item))
+    .join(' ')
+    .toLowerCase();
 
-  if (existed) {
-    Object.assign(existed, index);
-    return existed;
-  }
-
-  this.searchIndexes.push(index);
-  return index;
+  return this.prisma.ecProductSearchIndex.upsert({
+    where: {
+      tenantId_productId: {
+        tenantId,
+        productId: product.id,
+      },
+    },
+    update: {
+      skuIdsJson: skuIds,
+      title: product.title,
+      categoryPath: product.category?.path || product.category?.name || null,
+      brandName: product.brand?.name || null,
+      minPrice: minPrice.toFixed(2),
+      maxPrice: maxPrice.toFixed(2),
+      saleStatus: product.saleStatus,
+      searchText,
+      indexedAt: new Date(),
+      deletedAt: null,
+    },
+    create: {
+      tenantId,
+      productId: product.id,
+      skuIdsJson: skuIds,
+      title: product.title,
+      categoryPath: product.category?.path || product.category?.name || null,
+      brandName: product.brand?.name || null,
+      minPrice: minPrice.toFixed(2),
+      maxPrice: maxPrice.toFixed(2),
+      saleStatus: product.saleStatus,
+      searchText,
+      indexedAt: new Date(),
+    },
+  });
 }
 
-async searchProducts(query: { keyword?: string }) {
-  return this.searchIndexes.filter((index) => {
-    if (index.saleStatus !== 'on_sale') return false;
-    if (!query.keyword) return true;
-    return index.searchText.toLowerCase().includes(query.keyword.toLowerCase());
+async searchProducts(query: { keyword?: string; saleStatus?: string }) {
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.ecProductSearchIndex.findMany({
+    where: {
+      tenantId,
+      deletedAt: null,
+      ...(query.saleStatus ? { saleStatus: query.saleStatus } : {}),
+      ...(query.keyword ? { searchText: { contains: query.keyword } } : {}),
+    },
+    orderBy: [{ saleStatus: 'asc' }, { updatedAt: 'desc' }],
   });
 }
 ```
@@ -1320,51 +1610,54 @@ async searchProducts(query: { keyword?: string }) {
 ### `search.service.ts`
 
 ```ts
-import { Injectable } from '@nestjs/common';
-import { CatalogRepository } from '../catalog/catalog.repository';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+
+type ProductForIndex = Prisma.EcProductGetPayload<{
+  include: {
+    category: true;
+    brand: true;
+    skus: true;
+  };
+}>;
 
 @Injectable()
 export class SearchService {
-  constructor(private readonly catalogRepository: CatalogRepository) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async syncProduct(productId: string) {
-    const product = await this.catalogRepository.getProduct(productId);
-    const category = await this.catalogRepository.getCategory(product.categoryId);
-    const brand = product.brandId
-      ? await this.catalogRepository.getBrand(product.brandId)
-      : null;
-
-    const prices = product.skus
-      .filter((sku) => sku.status === 'enabled')
-      .map((sku) => sku.salePrice);
-
-    const minPrice = prices.length ? Math.min(...prices) : 0;
-    const maxPrice = prices.length ? Math.max(...prices) : 0;
-
-    return this.catalogRepository.upsertSearchIndex({
-      productId: product.id,
-      title: product.title,
-      categoryName: category.name,
-      brandName: brand?.name,
-      minPrice,
-      maxPrice,
-      saleStatus: product.saleStatus,
-      searchText: [
-        product.title,
-        product.subTitle,
-        product.productNo,
-        product.searchKeywords,
-        category.name,
-        brand?.name,
-      ]
-        .filter(Boolean)
-        .join(' '),
-      indexedAt: new Date(),
+    const tenantId = await this.getDefaultTenantId();
+    const product = await this.prisma.ecProduct.findFirst({
+      where: {
+        id: BigInt(productId),
+        tenantId,
+        deletedAt: null,
+      },
+      include: {
+        category: true,
+        brand: true,
+        skus: {
+          where: { deletedAt: null },
+          orderBy: { id: 'asc' },
+        },
+      },
     });
+    if (!product) {
+      throw new NotFoundException('商品不存在');
+    }
+
+    return this.upsertProductIndex(tenantId, product);
   }
 
   searchProducts(query: { keyword?: string }) {
-    return this.catalogRepository.searchProducts(query);
+    return this.prisma.ecProductSearchIndex.findMany({
+      where: {
+        deletedAt: null,
+        ...(query.keyword ? { searchText: { contains: query.keyword } } : {}),
+      },
+      orderBy: [{ updatedAt: 'desc' }],
+    });
   }
 }
 ```
@@ -1412,22 +1705,22 @@ export class SearchController {
 
 ```ts
 import { Module } from '@nestjs/common';
-import { CatalogModule } from '../catalog/catalog.module';
+import { PrismaModule } from '../prisma/prisma.module';
 import { SearchController } from './search.controller';
 import { SearchService } from './search.service';
 
 @Module({
-  imports: [CatalogModule],
+  imports: [PrismaModule],
   controllers: [SearchController],
   providers: [SearchService],
 })
 export class SearchModule {}
 ```
 
-为什么 `SearchModule` 依赖 `CatalogModule`：
+为什么 `SearchModule` 依赖 `PrismaModule`：
 
 - 搜索索引来源于商品数据。
-- 搜索模块不应该自己维护商品主数据。
+- 搜索模块直接读取 `ec_product`、`ec_sku`、`ec_category`、`ec_brand`，再写入 `ec_product_search_index`。
 
 ## 默认权限和菜单
 
@@ -1615,13 +1908,6 @@ GET /api/admin/v1/search/products?keyword=手机
 | 没有店铺商品关系 | 真实项目有 `ec_shop_product` |
 | 没有审核状态 | 真实项目可扩展 `audit_status` |
 
-真实项目对应文件：
-
-```text
-server/src/modules/catalog
-server/src/modules/search
-server/prisma/schema.prisma
-```
 
 真实项目中商品相关模型：
 
@@ -1635,4 +1921,8 @@ EcProductImage
 EcProductReview
 EcProductSearchIndex
 ```
+
+
+
+
 

@@ -1,4 +1,4 @@
-一个商城不只是“能买”，还要“能运营”：
+﻿一个商城不只是“能买”，还要“能运营”：
 ```text
 新用户发券
   -> 活动价
@@ -106,19 +106,24 @@ AuthService.wechatLogin
 
 ### 优惠券模板 `mk_coupon_template`
 
-```text
-mk_coupon_template
-  id
-  tenant_id
-  name
-  coupon_type
-  threshold_amount
-  discount_amount
-  valid_start_at
-  valid_end_at
-  total_qty
-  issued_qty
-  status
+```prisma
+model MkCouponTemplate {
+  id              BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId        BigInt   @map("tenant_id") @db.UnsignedBigInt
+  name            String   @db.VarChar(100)
+  couponType      String   @default("cash") @map("coupon_type") @db.VarChar(32)
+  thresholdAmount Decimal  @default(0) @map("threshold_amount") @db.Decimal(18, 2)
+  discountAmount  Decimal  @default(0) @map("discount_amount") @db.Decimal(18, 2)
+  validStartAt    DateTime @map("valid_start_at") @db.DateTime(3)
+  validEndAt      DateTime @map("valid_end_at") @db.DateTime(3)
+  totalQty        Int?     @map("total_qty")
+  issuedQty       Int      @default(0) @map("issued_qty")
+  status          String   @default("enabled") @db.VarChar(32)
+
+  @@unique([tenantId, name], map: "uk_mk_coupon_template_tenant_name")
+  @@index([tenantId, status], map: "idx_mk_coupon_template_tenant_status")
+  @@map("mk_coupon_template")
+}
 ```
 
 优惠券模板表示“运营配置的一种券”：
@@ -131,22 +136,29 @@ mk_coupon_template
 
 ### 会员优惠券 `mk_coupon`
 
-```text
-mk_coupon
-  id
-  tenant_id
-  template_id
-  member_id
-  coupon_no
-  name
-  coupon_type
-  threshold_amount
-  discount_amount
-  status
-  expired_at
-  locked_order_id
-  locked_at
-  used_at
+```prisma
+model MkCoupon {
+  id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId        BigInt    @map("tenant_id") @db.UnsignedBigInt
+  templateId      BigInt?   @map("template_id") @db.UnsignedBigInt
+  memberId        BigInt    @map("member_id") @db.UnsignedBigInt
+  couponNo        String    @map("coupon_no") @db.VarChar(64)
+  name            String    @db.VarChar(100)
+  couponType      String    @default("cash") @map("coupon_type") @db.VarChar(32)
+  thresholdAmount Decimal   @default(0) @map("threshold_amount") @db.Decimal(18, 2)
+  discountAmount  Decimal   @default(0) @map("discount_amount") @db.Decimal(18, 2)
+  status          String    @default("available") @db.VarChar(32)
+  receivedAt      DateTime  @default(now()) @map("received_at") @db.DateTime(3)
+  usedAt          DateTime? @map("used_at") @db.DateTime(3)
+  expiredAt       DateTime  @map("expired_at") @db.DateTime(3)
+  lockedOrderId   BigInt?   @map("locked_order_id") @db.UnsignedBigInt
+  lockedAt        DateTime? @map("locked_at") @db.DateTime(3)
+
+  @@unique([tenantId, couponNo], map: "uk_mk_coupon_tenant_no")
+  @@index([tenantId, memberId, status], map: "idx_mk_coupon_tenant_member_status")
+  @@index([tenantId, expiredAt], map: "idx_mk_coupon_tenant_expired")
+  @@map("mk_coupon")
+}
 ```
 
 会员优惠券表示“某个会员实际拥有的一张券”。为什么要拆模板和会员券：
@@ -552,31 +564,42 @@ locked -> available
 
 ### 促销主表 `mk_promotion`
 
-```text
-mk_promotion
-  id
-  tenant_id
-  shop_id
-  channel_id
-  name
-  type
-  rule_json
-  start_at
-  end_at
-  status
+```prisma
+model MkPromotion {
+  id        BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId  BigInt   @map("tenant_id") @db.UnsignedBigInt
+  shopId    BigInt?  @map("shop_id") @db.UnsignedBigInt
+  channelId BigInt?  @map("channel_id") @db.UnsignedBigInt
+  name      String   @db.VarChar(128)
+  type      String   @db.VarChar(32)
+  ruleJson  Json?    @map("rule_json")
+  startAt   DateTime @map("start_at") @db.DateTime(3)
+  endAt     DateTime @map("end_at") @db.DateTime(3)
+  status    String   @default("enabled") @db.VarChar(32)
+
+  @@index([tenantId, type, status, startAt, endAt], map: "idx_mk_promotion_tenant_type_status_time")
+  @@index([tenantId, shopId, channelId], map: "idx_mk_promotion_tenant_scope")
+  @@map("mk_promotion")
+}
 ```
 
 ### 促销商品表 `mk_promotion_product`
 
-```text
-mk_promotion_product
-  id
-  tenant_id
-  promotion_id
-  product_id
-  sku_id
-  activity_price
-  limit_qty
+```prisma
+model MkPromotionProduct {
+  id            BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId      BigInt   @map("tenant_id") @db.UnsignedBigInt
+  promotionId   BigInt   @map("promotion_id") @db.UnsignedBigInt
+  productId     BigInt   @map("product_id") @db.UnsignedBigInt
+  skuId         BigInt?  @map("sku_id") @db.UnsignedBigInt
+  activityPrice Decimal? @map("activity_price") @db.Decimal(18, 2)
+  limitQty      Int?     @map("limit_qty")
+
+  @@unique([tenantId, promotionId, productId, skuId], map: "uk_mk_promotion_product_tenant_target")
+  @@index([tenantId, promotionId], map: "idx_mk_promotion_product_tenant_promotion")
+  @@index([tenantId, productId], map: "idx_mk_promotion_product_tenant_product")
+  @@map("mk_promotion_product")
+}
 ```
 
 为什么促销要拆主表和商品表：
@@ -803,16 +826,21 @@ private resolvePromotionRuleDiscount(promotion: PromotionEntity, amount: number)
 
 ### 运费模板表 `mk_freight_template`
 
-```text
-mk_freight_template
-  id
-  tenant_id
-  shop_id
-  name
-  pricing_type
-  rule_json
-  free_shipping_rule_json
-  status
+```prisma
+model MkFreightTemplate {
+  id                   BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId             BigInt    @map("tenant_id") @db.UnsignedBigInt
+  shopId               BigInt?   @map("shop_id") @db.UnsignedBigInt
+  name                 String    @db.VarChar(128)
+  pricingType          String    @default("flat") @map("pricing_type") @db.VarChar(32)
+  ruleJson             Json?     @map("rule_json")
+  freeShippingRuleJson Json?     @map("free_shipping_rule_json")
+  status               String    @default("enabled") @db.VarChar(32)
+
+  @@index([tenantId, status], map: "idx_mk_freight_template_tenant_status")
+  @@index([tenantId, shopId], map: "idx_mk_freight_template_tenant_shop")
+  @@map("mk_freight_template")
+}
 ```
 
 为什么运费也放营销模块：
@@ -953,20 +981,24 @@ CMS 负责内容配置，不负责交易金额。
 
 ### Banner `cms_banner`
 
-```text
-cms_banner
-  id
-  tenant_id
-  shop_id
-  channel_id
-  title
-  image_url
-  link_type
-  link_value
-  start_at
-  end_at
-  sort_no
-  status
+```prisma
+model CmsBanner {
+  id        BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId  BigInt    @map("tenant_id") @db.UnsignedBigInt
+  shopId    BigInt?   @map("shop_id") @db.UnsignedBigInt
+  channelId BigInt?   @map("channel_id") @db.UnsignedBigInt
+  title     String    @db.VarChar(128)
+  imageUrl  String    @map("image_url") @db.VarChar(512)
+  linkType  String    @default("none") @map("link_type") @db.VarChar(32)
+  linkValue String?   @map("link_value") @db.VarChar(255)
+  startAt   DateTime? @map("start_at") @db.DateTime(3)
+  endAt     DateTime? @map("end_at") @db.DateTime(3)
+  sortNo    Int       @default(0) @map("sort_no")
+  status    String    @default("enabled") @db.VarChar(32)
+
+  @@index([tenantId, shopId, channelId, status, sortNo], map: "idx_cms_banner_tenant_scope_status_sort")
+  @@map("cms_banner")
+}
 ```
 
 为什么 Banner 有时间范围：
@@ -984,18 +1016,22 @@ cms_banner
 
 ### 页面模块 `cms_page_module`
 
-```text
-cms_page_module
-  id
-  tenant_id
-  shop_id
-  channel_id
-  page_code
-  module_type
-  title
-  config_json
-  sort_no
-  status
+```prisma
+model CmsPageModule {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId   BigInt    @map("tenant_id") @db.UnsignedBigInt
+  shopId     BigInt?   @map("shop_id") @db.UnsignedBigInt
+  channelId  BigInt?   @map("channel_id") @db.UnsignedBigInt
+  pageCode   String    @map("page_code") @db.VarChar(64)
+  moduleType String    @map("module_type") @db.VarChar(64)
+  title      String?   @db.VarChar(128)
+  configJson Json?     @map("config_json")
+  sortNo     Int       @default(0) @map("sort_no")
+  status     String    @default("enabled") @db.VarChar(32)
+
+  @@index([tenantId, pageCode, status, sortNo], map: "idx_cms_page_module_tenant_page_status_sort")
+  @@map("cms_page_module")
+}
 ```
 
 示例：
@@ -1436,18 +1472,16 @@ curl -X POST http://localhost:3000/api/admin/v1/cms/banners \
 真实项目中可以重点看：
 
 ```text
-server/src/modules/marketing/marketing.controller.ts
-server/src/modules/marketing/marketing.service.ts
-server/src/modules/marketing/dto/coupon-template-mutation.dto.ts
-server/src/modules/marketing/dto/promotion-mutation.dto.ts
-server/src/modules/marketing/dto/freight-template-mutation.dto.ts
 
-server/src/modules/cms/cms.controller.ts
-server/src/modules/cms/cms.service.ts
-server/src/modules/cms/dto/cms-banner-mutation.dto.ts
-server/src/modules/cms/dto/cms-page-module-mutation.dto.ts
 
-server/prisma/schema.prisma
+
+
+
+
+
+
+
+
   MkCouponTemplate
   MkCoupon
   MkPromotion
@@ -1470,4 +1504,6 @@ server/prisma/schema.prisma
 | CMS | Banner + 页面模块 | Banner、PageModule、Notice、Agreement |
 | 小程序 CMS | 建议补充聚合接口 | 当前主要是后台 CRUD |
 | 算价 | 订单预览调用营销服务 | `previewOrderAdjustments` |
+
+
 

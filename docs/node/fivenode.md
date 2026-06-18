@@ -1,4 +1,4 @@
-现在小程序端已经能看到商品，也知道当前用户是谁。下一步就是用户真正产生购买意图：
+﻿现在小程序端已经能看到商品，也知道当前用户是谁。下一步就是用户真正产生购买意图：
 
 ```text
 选择 SKU
@@ -115,21 +115,27 @@ cart
 - 用户删除购物车后，可能还要保留历史排查数据。
 - 同一个会员同一个 SKU 不应该出现多行。
 
-所以真实项目的购物车表更像：
+所以真实项目的购物车表以 `schema.prisma` 里的 `EcCartItem` 为准：
 
-```text
-ec_cart_item
-  id
-  tenant_id
-  member_id
-  product_id
-  sku_id
-  qty
-  checked
-  added_at
-  created_at
-  updated_at
-  deleted_at
+```prisma
+model EcCartItem {
+  id        BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId  BigInt    @map("tenant_id") @db.UnsignedBigInt
+  memberId  BigInt    @map("member_id") @db.UnsignedBigInt
+  productId BigInt    @map("product_id") @db.UnsignedBigInt
+  skuId     BigInt    @map("sku_id") @db.UnsignedBigInt
+  qty       Decimal   @default(1) @db.Decimal(18, 4)
+  checked   Boolean   @default(true)
+  addedAt   DateTime  @default(now()) @map("added_at") @db.DateTime(3)
+  createdAt DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt DateTime? @map("deleted_at") @db.DateTime(3)
+  version   Int       @default(1) @db.UnsignedInt
+
+  @@unique([tenantId, memberId, skuId], map: "uk_ec_cart_item_tenant_member_sku")
+  @@index([tenantId, memberId], map: "idx_ec_cart_item_tenant_member")
+  @@map("ec_cart_item")
+}
 ```
 
 关键唯一约束：
@@ -370,7 +376,7 @@ export class CatalogService implements CatalogReader {
 
 ## 购物车存储：Prisma + MySQL
 
-当前项目没有 `cart.repository.ts`。购物车直接由 `CartService` 注入 `PrismaService` 读写 `ec_cart_item`，同一个会员同一个 SKU 通过数据库唯一键合并。
+购物车直接由 `CartService` 注入 `PrismaService` 读写 `ec_cart_item`，同一个会员同一个 SKU 通过数据库唯一键合并。
 
 ### 真实唯一键
 
@@ -1365,19 +1371,16 @@ curl -X POST http://localhost:3000/api/app/v1/orders/preview \
 真实项目中可以重点看：
 
 ```text
-server/src/modules/cart/cart.controller.ts
-server/src/modules/cart/cart.service.ts
-server/src/modules/cart/dto/add-cart-item.dto.ts
-server/src/modules/cart/dto/update-cart-item.dto.ts
 
-server/src/modules/order/order.controller.ts
-server/src/modules/order/order.service.ts
-server/src/modules/order/dto/preview-order.dto.ts
-server/src/modules/order/dto/create-order.dto.ts
 
-server/src/modules/marketing/marketing.service.ts
 
-server/prisma/schema.prisma
+
+
+
+
+
+
+
   EcCartItem
   EcOrder
   EcOrderAddress
@@ -1402,9 +1405,9 @@ server/prisma/schema.prisma
 当前项目购物车真实代码在：
 
 ```text
-server/src/modules/cart/cart.service.ts
-server/src/modules/order/order.service.ts
-server/prisma/schema.prisma
+
+
+
 ```
 
 加购时不是写内存数组，而是先查 SKU，再用 `tenantId_memberId_skuId` 唯一键合并购物车：
@@ -1487,3 +1490,5 @@ async preview(member: CurrentMemberPayload, dto: PreviewOrderDto = {}) {
   return this.buildPreview(member, shopChannel, cartItems, dto.couponId);
 }
 ```
+
+

@@ -1,4 +1,4 @@
-一个管理后台不是“登录后所有人都能操作”，而是需要用户、角色、权限、菜单和审计，这就设计到RBAC(Role-Based Access Control)，中文叫 基于角色的访问控制。核心思路是：不是直接给每个用户分配权限，而是先给角色分配权限，再把角色分配给用户
+﻿一个管理后台不是“登录后所有人都能操作”，而是需要用户、角色、权限、菜单和审计，这就设计到RBAC(Role-Based Access Control)，中文叫 基于角色的访问控制。核心思路是：不是直接给每个用户分配权限，而是先给角色分配权限，再把角色分配给用户
 ```text
 后台用户管理
   -> 角色管理
@@ -45,14 +45,56 @@ sys_menu
 sys_audit_log
 ```
 
-真实代码位置：
+这些表以 `schema.prisma` 为准，核心模型示例：
 
-```text
-server/src/modules/system/system.service.ts
-server/src/common/guards/admin-auth.guard.ts
-server/src/common/interceptors/audit-log.interceptor.ts
-server/prisma/schema.prisma
+```prisma
+model SysAdminUser {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId      BigInt    @map("tenant_id") @db.UnsignedBigInt
+  username      String    @db.VarChar(64)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  realName      String    @map("real_name") @db.VarChar(64)
+  phone         String?   @db.VarChar(32)
+  roleCodesJson Json?     @map("role_codes_json")
+  status        String    @default("enabled") @db.VarChar(32)
+  lastLoginAt   DateTime? @map("last_login_at") @db.DateTime(3)
+  deletedAt     DateTime? @map("deleted_at") @db.DateTime(3)
+
+  @@unique([tenantId, username], map: "uk_sys_admin_user_tenant_username")
+  @@unique([tenantId, phone], map: "uk_sys_admin_user_tenant_phone")
+  @@map("sys_admin_user")
+}
+
+model SysRole {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId            BigInt    @map("tenant_id") @db.UnsignedBigInt
+  name                String    @db.VarChar(64)
+  code                String    @db.VarChar(64)
+  dataScope           String    @default("all") @map("data_scope") @db.VarChar(32)
+  permissionCodesJson Json?     @map("permission_codes_json")
+  menuIdsJson         Json?     @map("menu_ids_json")
+  status              String    @default("enabled") @db.VarChar(32)
+  deletedAt           DateTime? @map("deleted_at") @db.DateTime(3)
+
+  @@unique([tenantId, code], map: "uk_sys_role_tenant_code")
+  @@map("sys_role")
+}
+
+model SysPermission {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId     BigInt    @map("tenant_id") @db.UnsignedBigInt
+  code         String    @db.VarChar(128)
+  name         String    @db.VarChar(64)
+  resourceType String    @map("resource_type") @db.VarChar(32)
+  resourcePath String?   @map("resource_path") @db.VarChar(255)
+  status       String    @default("enabled") @db.VarChar(32)
+  deletedAt    DateTime? @map("deleted_at") @db.DateTime(3)
+
+  @@unique([tenantId, code], map: "uk_sys_permission_tenant_code")
+  @@map("sys_permission")
+}
 ```
+
 
 例如后台用户列表不是读数组，而是通过 Prisma 分页查询：
 
@@ -123,7 +165,6 @@ src/
       system.module.ts
       system.controller.ts
       system.service.ts
-      system.repository.ts
       dto/
         user.dto.ts
         role.dto.ts
@@ -192,7 +233,7 @@ AdminUser.roleCodes
 
 ## 定义数据模型
 
-### `system.repository.ts` 的基础类型
+### 系统管理基础类型
 
 ```ts
 export type UserStatus = 'enabled' | 'disabled';
@@ -521,114 +562,179 @@ export class MenuMutationDto {
 - 前端渲染菜单时，可以根据权限决定是否显示。
 - 但最终接口访问仍由后端 Guard 判断。
 
-## SystemRepository
+## Prisma 数据访问示例
 
-### 基础仓储
+下面这一段用当前项目的真实写法讲 RBAC 数据读写逻辑。用户、角色、权限、菜单和审计日志都由 `SystemService` 直接注入 `PrismaService` 读写 MySQL。
+
+### Prisma 入口
 
 ```ts
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import {
-  AuditLog,
-  SystemMenu,
-  SystemPermission,
-  SystemRole,
-  SystemUser,
-} from './system.types';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class SystemRepository {
-  private users: SystemUser[] = [];
-  private roles: SystemRole[] = [];
-  private permissions: SystemPermission[] = [];
-  private menus: SystemMenu[] = [];
-  private auditLogs: AuditLog[] = [];
+export class SystemService {
+  constructor(private readonly prisma: PrismaService) {}
 
-  private ids = {
-    user: 1,
-    role: 1,
-    permission: 1,
-    menu: 1,
-    audit: 1,
-  };
-
-  nextId(type: keyof typeof this.ids) {
-    return String(this.ids[type]++);
-  }
-
-  now() {
-    return new Date();
+  private async getDefaultTenantId(): Promise<bigint> {
+    const tenant = await this.prisma.sysTenant.findFirst({
+      where: { code: 'default', deletedAt: null },
+    });
+    if (!tenant) {
+      throw new NotFoundException('默认商户不存在，请先执行 seed');
+    }
+    return tenant.id;
   }
 }
 ```
 
-实际代码中可以把类型放在 `system.types.ts`，也可以直接放 `system.repository.ts`。
+实际代码里的类型主要来自 `@prisma/client`，持久化结构以 `schema.prisma` 为准。
 
 ### 用户相关方法
 
 ```ts
-async listUsers(query: { keyword?: string; status?: string }) {
-  return this.users.filter((user) => {
-    if (user.deletedAt) return false;
-    if (query.status && user.status !== query.status) return false;
-    if (query.keyword) {
-      const keyword = query.keyword.toLowerCase();
-      return (
-        user.username.toLowerCase().includes(keyword) ||
-        user.realName.toLowerCase().includes(keyword) ||
-        user.phone?.includes(keyword)
-      );
-    }
-    return true;
-  });
+async listUsers(query: { keyword?: string; status?: string; page?: number; pageSize?: number }) {
+  const tenantId = await this.getDefaultTenantId();
+  const page = query.page || 1;
+  const pageSize = query.pageSize || 20;
+  const where: Prisma.SysAdminUserWhereInput = {
+    tenantId,
+    deletedAt: null,
+  };
+
+  if (query.keyword) {
+    where.OR = [
+      { username: { contains: query.keyword } },
+      { realName: { contains: query.keyword } },
+      { phone: { contains: query.keyword } },
+      { email: { contains: query.keyword } },
+    ];
+  }
+
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  const [items, total] = await Promise.all([
+    this.prisma.sysAdminUser.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+    this.prisma.sysAdminUser.count({ where }),
+  ]);
+
+  return {
+    items: items.map((item) => this.toUserRow(item)),
+    page,
+    pageSize,
+    total,
+  };
 }
 
 async findUserById(id: string) {
-  return this.users.find((user) => user.id === id && !user.deletedAt) || null;
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysAdminUser.findFirst({
+    where: {
+      id: BigInt(id),
+      tenantId,
+      deletedAt: null,
+    },
+  });
 }
 
 async findUserByUsername(username: string) {
-  return this.users.find((user) => user.username === username && !user.deletedAt) || null;
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysAdminUser.findFirst({
+    where: {
+      tenantId,
+      username,
+      deletedAt: null,
+    },
+  });
 }
 
-async createUser(input: Omit<SystemUser, 'id' | 'createdAt' | 'updatedAt'>) {
+async createUser(input: {
+  username: string;
+  passwordHash: string;
+  realName: string;
+  phone?: string;
+  email?: string;
+  roleCodes: string[];
+  status?: string;
+  operatorId: bigint;
+}) {
+  const tenantId = await this.getDefaultTenantId();
   const existed = await this.findUserByUsername(input.username);
   if (existed) {
-    throw new ConflictException('username already exists');
+    throw new BadRequestException('账号已存在');
   }
 
-  const now = this.now();
-  const user: SystemUser = {
-    ...input,
-    id: this.nextId('user'),
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  this.users.push(user);
-  return user;
-}
-
-async updateUser(id: string, patch: Partial<SystemUser>) {
-  const user = await this.findUserById(id);
-  if (!user) {
-    throw new NotFoundException('user not found');
-  }
-
-  Object.assign(user, patch, {
-    updatedAt: this.now(),
+  const user = await this.prisma.sysAdminUser.create({
+    data: {
+      tenantId,
+      username: input.username,
+      passwordHash: input.passwordHash,
+      realName: input.realName,
+      phone: input.phone,
+      email: input.email,
+      roleCodesJson: input.roleCodes,
+      status: input.status || 'enabled',
+      createdBy: input.operatorId,
+      updatedBy: input.operatorId,
+    },
   });
 
-  return user;
+  return this.toUserRow(user);
 }
 
-async deleteUser(id: string) {
+async updateUser(id: string, patch: {
+  realName?: string;
+  phone?: string;
+  email?: string;
+  roleCodes?: string[];
+  status?: string;
+  passwordHash?: string;
+  operatorId: bigint;
+}) {
   const user = await this.findUserById(id);
   if (!user) {
-    throw new NotFoundException('user not found');
+    throw new NotFoundException('员工不存在');
   }
 
-  user.deletedAt = this.now();
-  user.updatedAt = this.now();
+  const updated = await this.prisma.sysAdminUser.update({
+    where: { id: user.id },
+    data: {
+      realName: patch.realName ?? user.realName,
+      phone: patch.phone ?? user.phone,
+      email: patch.email ?? user.email,
+      roleCodesJson: patch.roleCodes ?? user.roleCodesJson,
+      status: patch.status ?? user.status,
+      updatedBy: patch.operatorId,
+      ...(patch.passwordHash ? { passwordHash: patch.passwordHash } : {}),
+    },
+  });
+
+  return this.toUserRow(updated);
+}
+
+async deleteUser(id: string, operatorId: bigint) {
+  const user = await this.findUserById(id);
+  if (!user) {
+    throw new NotFoundException('员工不存在');
+  }
+
+  await this.prisma.sysAdminUser.update({
+    where: { id: user.id },
+    data: {
+      status: 'disabled',
+      deletedAt: new Date(),
+      updatedBy: operatorId,
+    },
+  });
+
   return { success: true };
 }
 ```
@@ -643,75 +749,184 @@ async deleteUser(id: string) {
 核心写法类似，这里摘关键代码：
 
 ```ts
-async listRoles() {
-  return this.roles.filter((role) => !role.deletedAt);
+async listRoles(query: { keyword?: string; status?: string; page?: number; pageSize?: number } = {}) {
+  const tenantId = await this.getDefaultTenantId();
+  const page = query.page || 1;
+  const pageSize = query.pageSize || 20;
+  const where: Prisma.SysRoleWhereInput = {
+    tenantId,
+    deletedAt: null,
+  };
+
+  if (query.keyword) {
+    where.OR = [
+      { name: { contains: query.keyword } },
+      { code: { contains: query.keyword } },
+    ];
+  }
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  const [items, total] = await Promise.all([
+    this.prisma.sysRole.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+    this.prisma.sysRole.count({ where }),
+  ]);
+
+  return { items, page, pageSize, total };
 }
 
 async findRoleByCode(code: string) {
-  return this.roles.find((role) => role.code === code && !role.deletedAt) || null;
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysRole.findFirst({
+    where: { tenantId, code, deletedAt: null },
+  });
 }
 
-async createRole(input: Omit<SystemRole, 'id' | 'createdAt' | 'updatedAt'>) {
+async createRole(input: {
+  name: string;
+  code: string;
+  permissionCodes: string[];
+  menuIds: string[];
+  status?: string;
+}) {
+  const tenantId = await this.getDefaultTenantId();
   const existed = await this.findRoleByCode(input.code);
   if (existed) {
-    throw new ConflictException('role code already exists');
+    throw new BadRequestException('角色编码已存在');
   }
 
-  const now = this.now();
-  const role: SystemRole = {
-    ...input,
-    id: this.nextId('role'),
-    createdAt: now,
-    updatedAt: now,
-  };
+  await this.validatePermissionCodes(tenantId, input.permissionCodes);
+  await this.validateMenuIds(tenantId, input.menuIds);
 
-  this.roles.push(role);
-  return role;
+  return this.prisma.sysRole.create({
+    data: {
+      tenantId,
+      name: input.name,
+      code: input.code,
+      permissionCodesJson: input.permissionCodes,
+      menuIdsJson: input.menuIds,
+      status: input.status || 'enabled',
+    },
+  });
 }
 
-async listPermissions() {
-  return this.permissions.filter((permission) => !permission.deletedAt);
+async listPermissions(query: { keyword?: string; status?: string; page?: number; pageSize?: number } = {}) {
+  const tenantId = await this.getDefaultTenantId();
+  const page = query.page || 1;
+  const pageSize = query.pageSize || 20;
+  const where: Prisma.SysPermissionWhereInput = {
+    tenantId,
+    deletedAt: null,
+  };
+  if (query.keyword) {
+    where.OR = [
+      { code: { contains: query.keyword } },
+      { name: { contains: query.keyword } },
+    ];
+  }
+  if (query.status) {
+    where.status = query.status;
+  }
+
+  const [items, total] = await Promise.all([
+    this.prisma.sysPermission.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+    this.prisma.sysPermission.count({ where }),
+  ]);
+
+  return { items, page, pageSize, total };
 }
 
 async findPermissionByCode(code: string) {
-  return this.permissions.find((item) => item.code === code && !item.deletedAt) || null;
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysPermission.findFirst({
+    where: { tenantId, code, deletedAt: null },
+  });
 }
 
 async createPermission(
-  input: Omit<SystemPermission, 'id' | 'createdAt' | 'updatedAt'>,
+  input: {
+    code: string;
+    name: string;
+    resourceType: string;
+    resourcePath?: string;
+    status?: string;
+  },
 ) {
+  const tenantId = await this.getDefaultTenantId();
   const existed = await this.findPermissionByCode(input.code);
   if (existed) {
-    throw new ConflictException('permission code already exists');
+    throw new BadRequestException('权限编码已存在');
   }
 
-  const now = this.now();
-  const permission: SystemPermission = {
-    ...input,
-    id: this.nextId('permission'),
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  this.permissions.push(permission);
-  return permission;
+  return this.prisma.sysPermission.create({
+    data: {
+      tenantId,
+      code: input.code,
+      name: input.name,
+      resourceType: input.resourceType,
+      resourcePath: input.resourcePath,
+      status: input.status || 'enabled',
+    },
+  });
 }
 
-async listMenus() {
-  return this.menus.filter((menu) => !menu.deletedAt);
+async listMenus(query: { keyword?: string; status?: string } = {}) {
+  const tenantId = await this.getDefaultTenantId();
+  const menus = await this.prisma.sysMenu.findMany({
+    where: {
+      tenantId,
+      deletedAt: null,
+      ...(query.status ? { status: query.status } : {}),
+    },
+    orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+  });
+
+  const filtered = query.keyword
+    ? menus.filter((menu) => menu.name.includes(query.keyword!) || menu.path.includes(query.keyword!))
+    : menus;
+  return this.buildMenuTree(filtered, new Set(filtered.map((menu) => menu.id)));
 }
 
-async createMenu(input: Omit<SystemMenu, 'id' | 'createdAt' | 'updatedAt'>) {
-  const now = this.now();
-  const menu: SystemMenu = {
-    ...input,
-    id: this.nextId('menu'),
-    createdAt: now,
-    updatedAt: now,
-  };
+async createMenu(input: {
+  parentId?: string;
+  name: string;
+  path: string;
+  icon?: string;
+  permissionCode?: string;
+  sortNo?: number;
+  visible?: boolean;
+  status?: string;
+}) {
+  const tenantId = await this.getDefaultTenantId();
+  const parentId = input.parentId ? BigInt(input.parentId) : null;
+  if (input.permissionCode) {
+    await this.findPermissionByCode(input.permissionCode);
+  }
 
-  this.menus.push(menu);
-  return menu;
+  return this.prisma.sysMenu.create({
+    data: {
+      tenantId,
+      parentId,
+      name: input.name,
+      path: input.path,
+      icon: input.icon,
+      permissionCode: input.permissionCode,
+      sortNo: input.sortNo || 0,
+      visible: input.visible ?? true,
+      status: input.status || 'enabled',
+    },
+  });
 }
 ```
 
@@ -724,21 +939,62 @@ async createMenu(input: Omit<SystemMenu, 'id' | 'createdAt' | 'updatedAt'>) {
 ### 审计日志方法
 
 ```ts
-async createAuditLog(input: Omit<AuditLog, 'id' | 'createdAt'>) {
-  const auditLog: AuditLog = {
-    ...input,
-    id: this.nextId('audit'),
-    createdAt: this.now(),
-  };
-
-  this.auditLogs.push(auditLog);
-  return auditLog;
+async createAuditLog(
+  admin: { adminId: bigint; username: string; realName?: string },
+  input: {
+    module: string;
+    action: string;
+    targetType?: string;
+    targetId?: string;
+    content?: string;
+    raw?: Record<string, unknown>;
+  },
+) {
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysAuditLog.create({
+    data: {
+      tenantId,
+      operatorId: admin.adminId,
+      operator: admin.realName || admin.username,
+      module: input.module,
+      action: input.action,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      content: input.content,
+      rawJson: input.raw || {},
+    },
+  });
 }
 
-async listAuditLogs() {
-  return [...this.auditLogs].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-  );
+async listAuditLogs(query: { module?: string; action?: string; keyword?: string; page?: number; pageSize?: number } = {}) {
+  const tenantId = await this.getDefaultTenantId();
+  const page = query.page || 1;
+  const pageSize = query.pageSize || 20;
+  const where: Prisma.SysAuditLogWhereInput = {
+    tenantId,
+    deletedAt: null,
+  };
+  if (query.module) where.module = query.module;
+  if (query.action) where.action = query.action;
+  if (query.keyword) {
+    where.OR = [
+      { operator: { contains: query.keyword } },
+      { targetId: { contains: query.keyword } },
+      { content: { contains: query.keyword } },
+    ];
+  }
+
+  const [items, total] = await Promise.all([
+    this.prisma.sysAuditLog.findMany({
+      where,
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+    this.prisma.sysAuditLog.count({ where }),
+  ]);
+
+  return { items, page, pageSize, total };
 }
 ```
 
@@ -761,71 +1017,103 @@ import { CreateUserDto, UpdateUserDto, UserQueryDto } from './dto/user.dto';
 import { RoleMutationDto } from './dto/role.dto';
 import { PermissionMutationDto } from './dto/permission.dto';
 import { MenuMutationDto } from './dto/menu.dto';
-import { SystemRepository } from './system.repository';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class SystemService {
-  constructor(private readonly repository: SystemRepository) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  listUsers(query: UserQueryDto) {
-    return this.repository.listUsers(query);
+  async listUsers(query: UserQueryDto) {
+    const tenantId = await this.getDefaultTenantId();
+    return this.prisma.sysAdminUser.findMany({
+      where: {
+        tenantId,
+        deletedAt: null,
+        ...(query.status ? { status: query.status } : {}),
+        ...(query.keyword
+          ? {
+              OR: [
+                { username: { contains: query.keyword } },
+                { realName: { contains: query.keyword } },
+                { phone: { contains: query.keyword } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
   }
 
-  async createUser(dto: CreateUserDto) {
+  async createUser(operatorId: bigint, dto: CreateUserDto) {
     await this.ensureRoleCodesExist(dto.roleCodes);
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.repository.createUser({
-      username: dto.username,
-      passwordHash,
-      realName: dto.realName,
-      phone: dto.phone,
-      roleCodes: dto.roleCodes,
-      status: dto.status,
+    const user = await this.prisma.sysAdminUser.create({
+      data: {
+        tenantId: await this.getDefaultTenantId(),
+        username: dto.username,
+        passwordHash,
+        realName: dto.realName,
+        phone: dto.phone,
+        roleCodesJson: dto.roleCodes,
+        status: dto.status,
+        createdBy: operatorId,
+        updatedBy: operatorId,
+      },
     });
 
     return this.sanitizeUser(user);
   }
 
-  async updateUser(id: string, dto: UpdateUserDto) {
+  async updateUser(operatorId: bigint, id: string, dto: UpdateUserDto) {
     await this.ensureRoleCodesExist(dto.roleCodes);
 
-    const patch: Record<string, unknown> = {
-      realName: dto.realName,
-      phone: dto.phone,
-      roleCodes: dto.roleCodes,
-      status: dto.status,
-    };
+    const user = await this.prisma.sysAdminUser.update({
+      where: { id: BigInt(id) },
+      data: {
+        realName: dto.realName,
+        phone: dto.phone,
+        roleCodesJson: dto.roleCodes,
+        status: dto.status,
+        updatedBy: operatorId,
+        ...(dto.password
+          ? { passwordHash: await bcrypt.hash(dto.password, 10) }
+          : {}),
+      },
+    });
 
-    if (dto.password) {
-      patch.passwordHash = await bcrypt.hash(dto.password, 10);
-    }
-
-    const user = await this.repository.updateUser(id, patch);
     return this.sanitizeUser(user);
   }
 
-  deleteUser(id: string) {
-    return this.repository.deleteUser(id);
+  async deleteUser(operatorId: bigint, id: string) {
+    await this.prisma.sysAdminUser.update({
+      where: { id: BigInt(id) },
+      data: {
+        status: 'disabled',
+        deletedAt: new Date(),
+        updatedBy: operatorId,
+      },
+    });
+    return { success: true };
   }
 
   private sanitizeUser(user: {
-    id: string;
+    id: bigint;
     username: string;
     realName: string;
-    phone?: string;
-    roleCodes: string[];
+    phone?: string | null;
+    roleCodesJson: unknown;
     status: string;
     createdAt: Date;
     updatedAt: Date;
   }) {
     return {
-      id: user.id,
+      id: user.id.toString(),
       username: user.username,
       realName: user.realName,
       phone: user.phone,
-      roleCodes: user.roleCodes,
+      roleCodes: Array.isArray(user.roleCodesJson) ? user.roleCodesJson : [],
       status: user.status,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -833,7 +1121,13 @@ export class SystemService {
   }
 
   private async ensureRoleCodesExist(roleCodes: string[]) {
-    const roles = await this.repository.listRoles();
+    const roles = await this.prisma.sysRole.findMany({
+      where: {
+        code: { in: roleCodes },
+        deletedAt: null,
+        status: 'enabled',
+      },
+    });
     const roleCodeSet = new Set(roles.map((role) => role.code));
 
     const missing = roleCodes.filter((code) => !roleCodeSet.has(code));
@@ -859,46 +1153,64 @@ export class SystemService {
 
 ```ts
 async listPermissions() {
-  return this.repository.listPermissions();
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysPermission.findMany({
+    where: { tenantId, deletedAt: null },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  });
 }
 
 async createPermission(dto: PermissionMutationDto) {
-  return this.repository.createPermission({
-    code: dto.code,
-    name: dto.name,
-    resourceType: dto.resourceType,
-    resourcePath: dto.resourcePath,
-    status: dto.status,
+  const tenantId = await this.getDefaultTenantId();
+  await this.ensurePermissionCodeAvailable(tenantId, dto.code);
+
+  return this.prisma.sysPermission.create({
+    data: {
+      tenantId,
+      code: dto.code,
+      name: dto.name,
+      resourceType: dto.resourceType,
+      resourcePath: dto.resourcePath,
+      status: dto.status || 'enabled',
+    },
   });
 }
 
 async listMenus() {
-  const menus = await this.repository.listMenus();
-  return this.buildMenuTree(menus);
+  const tenantId = await this.getDefaultTenantId();
+  const menus = await this.prisma.sysMenu.findMany({
+    where: { tenantId, deletedAt: null },
+    orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+  });
+  return this.buildMenuTree(menus, new Set(menus.map((menu) => menu.id)));
 }
 
 async createMenu(dto: MenuMutationDto) {
+  const tenantId = await this.getDefaultTenantId();
   if (dto.permissionCode) {
     await this.ensurePermissionCodesExist([dto.permissionCode]);
   }
 
-  return this.repository.createMenu({
-    parentId: dto.parentId,
-    name: dto.name,
-    path: dto.path,
-    icon: dto.icon,
-    permissionCode: dto.permissionCode,
-    sortNo: dto.sortNo,
-    visible: dto.visible,
-    status: dto.status,
+  return this.prisma.sysMenu.create({
+    data: {
+      tenantId,
+      parentId: dto.parentId ? BigInt(dto.parentId) : null,
+      name: dto.name,
+      path: dto.path,
+      icon: dto.icon,
+      permissionCode: dto.permissionCode,
+      sortNo: dto.sortNo,
+      visible: dto.visible,
+      status: dto.status || 'enabled',
+    },
   });
 }
 
 private buildMenuTree(menus: Array<{
-  id: string;
-  parentId?: string;
+  id: bigint;
+  parentId?: bigint | null;
   sortNo: number;
-}>) {
+}>, visibleIds: Set<bigint>) {
   const cloned = menus
     .map((menu) => ({ ...menu, children: [] as unknown[] }))
     .sort((a, b) => a.sortNo - b.sortNo);
@@ -907,7 +1219,7 @@ private buildMenuTree(menus: Array<{
   const roots: unknown[] = [];
 
   for (const menu of cloned) {
-    if (menu.parentId && map.has(menu.parentId)) {
+    if (menu.parentId && visibleIds.has(menu.parentId) && map.has(menu.parentId)) {
       map.get(menu.parentId)!.children.push(menu);
     } else {
       roots.push(menu);
@@ -918,7 +1230,15 @@ private buildMenuTree(menus: Array<{
 }
 
 private async ensurePermissionCodesExist(permissionCodes: string[]) {
-  const permissions = await this.repository.listPermissions();
+  const tenantId = await this.getDefaultTenantId();
+  const permissions = await this.prisma.sysPermission.findMany({
+    where: {
+      tenantId,
+      code: { in: permissionCodes },
+      deletedAt: null,
+      status: 'enabled',
+    },
+  });
   const permissionCodeSet = new Set(permissions.map((item) => item.code));
 
   const missing = permissionCodes.filter((code) => !permissionCodeSet.has(code));
@@ -942,19 +1262,27 @@ private async ensurePermissionCodesExist(permissionCodes: string[]) {
 
 ```ts
 async listRoles() {
-  return this.repository.listRoles();
+  const tenantId = await this.getDefaultTenantId();
+  return this.prisma.sysRole.findMany({
+    where: { tenantId, deletedAt: null },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+  });
 }
 
 async createRole(dto: RoleMutationDto) {
+  const tenantId = await this.getDefaultTenantId();
   await this.ensurePermissionCodesExist(dto.permissionCodes);
   await this.ensureMenuIdsExist(dto.menuIds);
 
-  return this.repository.createRole({
-    name: dto.name,
-    code: dto.code,
-    permissionCodes: dto.permissionCodes,
-    menuIds: dto.menuIds,
-    status: dto.status,
+  return this.prisma.sysRole.create({
+    data: {
+      tenantId,
+      name: dto.name,
+      code: dto.code,
+      permissionCodesJson: dto.permissionCodes,
+      menuIdsJson: dto.menuIds,
+      status: dto.status || 'enabled',
+    },
   });
 }
 
@@ -962,18 +1290,30 @@ async updateRole(id: string, dto: RoleMutationDto) {
   await this.ensurePermissionCodesExist(dto.permissionCodes);
   await this.ensureMenuIdsExist(dto.menuIds);
 
-  return this.repository.updateRole(id, {
-    name: dto.name,
-    code: dto.code,
-    permissionCodes: dto.permissionCodes,
-    menuIds: dto.menuIds,
-    status: dto.status,
+  return this.prisma.sysRole.update({
+    where: { id: BigInt(id) },
+    data: {
+      name: dto.name,
+      code: dto.code,
+      permissionCodesJson: dto.permissionCodes,
+      menuIdsJson: dto.menuIds,
+      status: dto.status,
+    },
   });
 }
 
 private async ensureMenuIdsExist(menuIds: string[]) {
-  const menus = await this.repository.listMenus();
-  const menuIdSet = new Set(menus.map((menu) => menu.id));
+  const tenantId = await this.getDefaultTenantId();
+  const ids = menuIds.map((id) => BigInt(id));
+  const menus = await this.prisma.sysMenu.findMany({
+    where: {
+      tenantId,
+      id: { in: ids },
+      deletedAt: null,
+      status: 'enabled',
+    },
+  });
+  const menuIdSet = new Set(menus.map((menu) => menu.id.toString()));
 
   const missing = menuIds.filter((id) => !menuIdSet.has(id));
   if (missing.length > 0) {
@@ -982,7 +1322,7 @@ private async ensureMenuIdsExist(menuIds: string[]) {
 }
 ```
 
-如果 `repository.updateRole` 尚未实现，可以按 `updateUser` 同样方式实现。
+如果更新角色方法尚未实现，可以按 `updateUser` 同样方式实现。
 
 为什么创建角色前要校验权限和菜单：
 
@@ -1137,57 +1477,92 @@ export type AdminAccessSnapshot = {
 ### `resolveAdminAccess`
 
 ```ts
-async resolveAdminAccess(user: { roleCodes: string[] }): Promise<AdminAccessSnapshot> {
-  const roles = await this.systemRepository.listRoles();
-  const permissions = await this.systemRepository.listPermissions();
-  const menus = await this.systemRepository.listMenus();
+async resolveAdminAccess(user: {
+  tenantId: bigint;
+  username: string;
+  roleCodesJson: unknown;
+}): Promise<AdminAccessSnapshot> {
+  const roleCodes = this.normalizeStringArray(user.roleCodesJson);
+  const isSuperAdmin =
+    user.username === 'admin' || roleCodes.includes('SUPER_ADMIN');
 
-  const enabledRoles = roles.filter(
-    (role) => role.status === 'enabled' && user.roleCodes.includes(role.code),
-  );
-
-  const isSuperAdmin = enabledRoles.some((role) => role.code === 'super_admin');
-
-  const permissionCodeSet = new Set<string>();
-  const menuIdSet = new Set<string>();
-
-  for (const role of enabledRoles) {
-    for (const code of role.permissionCodes) {
-      permissionCodeSet.add(code);
-    }
-    for (const menuId of role.menuIds) {
-      menuIdSet.add(menuId);
-    }
+  if (isSuperAdmin) {
+    return {
+      roleCodes: roleCodes.includes('SUPER_ADMIN') ? roleCodes : ['SUPER_ADMIN'],
+      permissionCodes: this.getDefaultAdminPermissionCodes(),
+      menus: this.getDefaultAdminMenus(),
+      buttonPermissions: this.getDefaultAdminPermissionCodes(),
+      isSuperAdmin: true,
+    };
   }
 
-  const enabledPermissions = permissions.filter(
-    (permission) =>
-      permission.status === 'enabled' &&
-      (isSuperAdmin || permissionCodeSet.has(permission.code)),
-  );
+  const roles = roleCodes.length
+    ? await this.prisma.sysRole.findMany({
+        where: {
+          tenantId: user.tenantId,
+          code: { in: roleCodes },
+          deletedAt: null,
+          status: 'enabled',
+        },
+      })
+    : [];
 
-  const buttonPermissions = enabledPermissions
-    .filter((permission) => permission.resourceType === 'button')
-    .map((permission) => permission.code);
+  const permissionCodeSet = new Set<string>();
+  const menuIdSet = new Set<bigint>();
 
-  const visibleMenus = menus.filter(
-    (menu) =>
-      menu.status === 'enabled' &&
-      menu.visible &&
-      (isSuperAdmin || menuIdSet.has(menu.id)),
-  );
+  for (const role of roles) {
+    this.normalizeStringArray(role.permissionCodesJson).forEach((code) => {
+      permissionCodeSet.add(code);
+    });
+    this.normalizeStringArray(role.menuIdsJson).forEach((menuId) => {
+      menuIdSet.add(BigInt(menuId));
+    });
+  }
+
+  const [permissions, menus] = await Promise.all([
+    permissionCodeSet.size
+      ? this.prisma.sysPermission.findMany({
+          where: {
+            tenantId: user.tenantId,
+            code: { in: Array.from(permissionCodeSet) },
+            deletedAt: null,
+            status: 'enabled',
+          },
+        })
+      : Promise.resolve([]),
+    menuIdSet.size
+      ? this.prisma.sysMenu.findMany({
+          where: {
+            tenantId: user.tenantId,
+            id: { in: Array.from(menuIdSet) },
+            deletedAt: null,
+            status: 'enabled',
+            visible: true,
+          },
+          orderBy: [{ sortNo: 'asc' }, { id: 'asc' }],
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const mergedPermissionCodes = new Set<string>([
+    ...Array.from(permissionCodeSet),
+    ...permissions.map((permission) => permission.code),
+    ...menus
+      .filter((menu) => menu.permissionCode)
+      .map((menu) => menu.permissionCode as string),
+  ]);
 
   return {
-    roleCodes: enabledRoles.map((role) => role.code),
-    permissionCodes: enabledPermissions.map((permission) => permission.code),
-    menus: this.buildMenuTree(visibleMenus),
-    buttonPermissions,
-    isSuperAdmin,
+    roleCodes,
+    permissionCodes: Array.from(mergedPermissionCodes),
+    menus: this.buildMenuTree(menus, menuIdSet),
+    buttonPermissions: Array.from(mergedPermissionCodes),
+    isSuperAdmin: false,
   };
 }
 ```
 
-这里的 `systemRepository` 需要注入到 `AuthService`。
+这里的 `AuthService` 直接注入 `PrismaService`，权限快照从 `sys_role`、`sys_permission`、`sys_menu` 读取。
 
 为什么返回 access snapshot：
 
@@ -1344,11 +1719,11 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Observable, catchError, tap, throwError } from 'rxjs';
-import { SystemRepository } from '../../modules/system/system.repository';
+import { PrismaService } from '../../modules/prisma/prisma.service';
 
 @Injectable()
 export class AuditLogInterceptor implements NestInterceptor {
-  constructor(private readonly repository: SystemRepository) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
@@ -1402,7 +1777,8 @@ export class AuditLogInterceptor implements NestInterceptor {
       query?: Record<string, unknown>;
       body?: unknown;
       admin?: {
-        adminId: string;
+        adminId: string | bigint;
+        tenantId: string | bigint;
         username: string;
         realName?: string;
       };
@@ -1418,23 +1794,28 @@ export class AuditLogInterceptor implements NestInterceptor {
     const path = String(request.url || '').split('?')[0];
     const method = String(request.method || '').toUpperCase();
 
-    await this.repository.createAuditLog({
-      operatorId: request.admin.adminId,
-      operator: request.admin.realName || request.admin.username,
-      module: this.resolveModule(path),
-      action: this.resolveAction(method, path),
-      path,
-      method,
-      targetId: this.resolveTargetId(path),
-      status: outcome.status,
-      durationMs: outcome.durationMs,
-      raw: {
-        params: this.sanitize(request.params || {}),
-        query: this.sanitize(request.query || {}),
-        body: this.sanitize(request.body),
-        error: outcome.error,
-      },
-    });
+    try {
+      await this.prisma.sysAuditLog.create({
+        data: {
+          tenantId: BigInt(request.admin.tenantId),
+          operatorId: BigInt(request.admin.adminId),
+          operator: request.admin.realName || request.admin.username,
+          module: this.resolveModule(path),
+          action: this.resolveAction(method, path),
+          targetId: this.resolveTargetId(path),
+          content: `${method} ${path} ${outcome.status}`.slice(0, 500),
+          rawJson: {
+            params: this.sanitize(request.params || {}),
+            query: this.sanitize(request.query || {}),
+            body: this.sanitize(request.body),
+            error: outcome.error,
+            durationMs: outcome.durationMs,
+          },
+        },
+      });
+    } catch {
+      // 审计是旁路能力，写日志失败不能打断主业务请求。
+    }
   }
 
   private resolveModule(path: string) {
@@ -1499,44 +1880,28 @@ export class AuditLogInterceptor implements NestInterceptor {
 
 ```ts
 import { Module } from '@nestjs/common';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { AuthModule } from '../auth/auth.module';
-import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
 import { SystemController } from './system.controller';
-import { SystemRepository } from './system.repository';
 import { SystemService } from './system.service';
 
 @Module({
-  imports: [AuthModule],
   controllers: [SystemController],
-  providers: [
-    SystemRepository,
-    SystemService,
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: AuditLogInterceptor,
-    },
-  ],
-  exports: [
-    SystemRepository,
-    SystemService,
-  ],
+  providers: [SystemService],
 })
 export class SystemModule {}
 ```
 
 注意：
 
-- 如果 `AuthModule` 也需要 `SystemRepository` 来解析角色权限，要避免循环依赖。
-- 可以先把 `SystemRepository` 提供在全局共享模块里，或者把 `resolveAdminAccess` 放到 `SystemService`。
-- 真实项目里通过模块依赖关系、Provider 注入和合理边界解决。
+- `PrismaModule` 是全局模块，`SystemService` 可以直接注入 `PrismaService`。
+- `AuditLogInterceptor` 在根模块作为全局 provider 注册，不需要挂在 `SystemModule` 里。
+- 当前项目的权限解析放在 `AuthService`，通过 Prisma 读取系统表。
 
 更清晰的拆法：
 
 ```text
-AuthService 只负责登录和 token。
-SystemService 负责解析 access。
-AdminAuthGuard 注入 AuthService + SystemService。
+AuthService 负责登录、token 和 access 解析。
+SystemService 负责系统管理 CRUD。
+AdminAuthGuard 注入 AuthService + RedisService。
 ```
 
 这样能避免 AuthModule 和 SystemModule 互相依赖。
@@ -1804,12 +2169,7 @@ roles
 | 审计写 `sys_audit_log` | 当前项目真实实现 |
 | 没有租户 | 真实项目所有核心表带 `tenant_id` |
 
-真实 ERP 项目里对应文件：
 
-```text
-server/src/modules/system
-server/src/common/guards/admin-auth.guard.ts
-server/src/common/interceptors/audit-log.interceptor.ts
-server/prisma/schema.prisma
-server/prisma/seed.ts
-```
+
+
+

@@ -1,4 +1,4 @@
-本章的核心原则`钱、库存、优惠券、订单状态，必须以服务端事务为准。`，创建订单不是简单写一条 `order` 记录，而是一次必须保证一致性的业务事务：
+﻿本章的核心原则`钱、库存、优惠券、订单状态，必须以服务端事务为准。`，创建订单不是简单写一条 `order` 记录，而是一次必须保证一致性的业务事务：
 
 ```text
 重新读取已勾选购物车
@@ -53,10 +53,15 @@ IdempotencyInterceptor
 如果只写：
 
 ```ts
-await db.order.create({
+await this.prisma.ecOrder.create({
   data: {
-    memberId,
-    totalAmount,
+    tenantId: member.tenantId,
+    shopId,
+    channelId,
+    orderNo,
+    memberId: member.memberId,
+    goodsAmount,
+    payableAmount,
   },
 });
 ```
@@ -137,32 +142,35 @@ src/
 
 ### 订单主表 `ec_order`
 
-```text
-ec_order
-  id
-  tenant_id
-  shop_id
-  channel_id
-  order_no
-  member_id
-  status
-  pay_status
-  delivery_status
-  aftersale_status
-  goods_amount
-  discount_amount
-  freight_amount
-  payable_amount
-  paid_amount
-  refund_amount
-  coupon_id
-  remark
-  price_snapshot_json
-  paid_at
-  cancelled_at
-  finished_at
-  created_at
-  updated_at
+```prisma
+model EcOrder {
+  id              BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId        BigInt    @map("tenant_id") @db.UnsignedBigInt
+  shopId          BigInt    @map("shop_id") @db.UnsignedBigInt
+  channelId       BigInt    @map("channel_id") @db.UnsignedBigInt
+  orderNo         String    @map("order_no") @db.VarChar(64)
+  memberId        BigInt    @map("member_id") @db.UnsignedBigInt
+  orderType       String    @default("normal") @map("order_type") @db.VarChar(32)
+  status          String    @default("pending_payment") @db.VarChar(32)
+  payStatus       String    @default("unpaid") @map("pay_status") @db.VarChar(32)
+  deliveryStatus  String    @default("undelivered") @map("delivery_status") @db.VarChar(32)
+  aftersaleStatus String    @default("none") @map("aftersale_status") @db.VarChar(32)
+  goodsAmount     Decimal   @default(0) @map("goods_amount") @db.Decimal(18, 2)
+  discountAmount  Decimal   @default(0) @map("discount_amount") @db.Decimal(18, 2)
+  freightAmount   Decimal   @default(0) @map("freight_amount") @db.Decimal(18, 2)
+  payableAmount   Decimal   @default(0) @map("payable_amount") @db.Decimal(18, 2)
+  paidAmount      Decimal   @default(0) @map("paid_amount") @db.Decimal(18, 2)
+  refundAmount    Decimal   @default(0) @map("refund_amount") @db.Decimal(18, 2)
+  couponId        BigInt?   @map("coupon_id") @db.UnsignedBigInt
+  priceSnapshot   Json?     @map("price_snapshot_json")
+  paidAt          DateTime? @map("paid_at") @db.DateTime(3)
+  cancelledAt     DateTime? @map("cancelled_at") @db.DateTime(3)
+  finishedAt      DateTime? @map("finished_at") @db.DateTime(3)
+
+  @@unique([tenantId, orderNo], map: "uk_ec_order_tenant_order_no")
+  @@index([tenantId, memberId, status], map: "idx_ec_order_tenant_member_status")
+  @@map("ec_order")
+}
 ```
 
 为什么订单金额要拆这么多字段：
@@ -184,24 +192,29 @@ ec_order
 
 ### 订单明细表 `ec_order_item`
 
-```text
-ec_order_item
-  id
-  tenant_id
-  order_id
-  product_id
-  sku_id
-  product_title
-  sku_spec_json
-  image_url
-  sale_price
-  qty
-  delivered_qty
-  refund_qty
-  goods_amount
-  discount_amount
-  payable_amount
-  refund_amount
+```prisma
+model EcOrderItem {
+  id             BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId       BigInt  @map("tenant_id") @db.UnsignedBigInt
+  orderId        BigInt  @map("order_id") @db.UnsignedBigInt
+  productId      BigInt  @map("product_id") @db.UnsignedBigInt
+  skuId          BigInt  @map("sku_id") @db.UnsignedBigInt
+  productTitle   String  @map("product_title") @db.VarChar(255)
+  skuSpecJson    Json?   @map("sku_spec_json")
+  imageUrl       String? @map("image_url") @db.VarChar(512)
+  salePrice      Decimal @map("sale_price") @db.Decimal(18, 4)
+  qty            Decimal @db.Decimal(18, 4)
+  deliveredQty   Decimal @default(0) @map("delivered_qty") @db.Decimal(18, 4)
+  refundQty      Decimal @default(0) @map("refund_qty") @db.Decimal(18, 4)
+  goodsAmount    Decimal @default(0) @map("goods_amount") @db.Decimal(18, 2)
+  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(18, 2)
+  payableAmount  Decimal @default(0) @map("payable_amount") @db.Decimal(18, 2)
+  refundAmount   Decimal @default(0) @map("refund_amount") @db.Decimal(18, 2)
+
+  @@index([tenantId, orderId], map: "idx_ec_order_item_tenant_order")
+  @@index([tenantId, skuId], map: "idx_ec_order_item_tenant_sku")
+  @@map("ec_order_item")
+}
 ```
 
 为什么订单明细要保存商品标题、规格、图片、成交价：
@@ -218,18 +231,22 @@ ec_order_item
 
 ### 订单地址表 `ec_order_address`
 
-```text
-ec_order_address
-  id
-  tenant_id
-  order_id
-  receiver_name
-  receiver_phone
-  province
-  city
-  district
-  detail
-  postal_code
+```prisma
+model EcOrderAddress {
+  id            BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId      BigInt  @map("tenant_id") @db.UnsignedBigInt
+  orderId       BigInt  @unique(map: "uk_ec_order_address_tenant_order") @map("order_id") @db.UnsignedBigInt
+  receiverName  String  @map("receiver_name") @db.VarChar(64)
+  receiverPhone String  @map("receiver_phone") @db.VarChar(32)
+  province      String  @db.VarChar(64)
+  city          String  @db.VarChar(64)
+  district      String  @db.VarChar(64)
+  detail        String  @db.VarChar(255)
+  postalCode    String? @map("postal_code") @db.VarChar(16)
+
+  @@index([tenantId, orderId], map: "idx_ec_order_address_tenant_order")
+  @@map("ec_order_address")
+}
 ```
 
 为什么订单不能只存 `memberAddressId`：
@@ -241,14 +258,21 @@ ec_order_address
 
 ### 库存余额表 `ec_stock_balance`
 
-```text
-ec_stock_balance
-  tenant_id
-  warehouse_id
-  sku_id
-  on_hand_qty
-  available_qty
-  locked_qty
+```prisma
+model EcStockBalance {
+  id           BigInt  @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId     BigInt  @map("tenant_id") @db.UnsignedBigInt
+  warehouseId  BigInt  @map("warehouse_id") @db.UnsignedBigInt
+  skuId        BigInt  @map("sku_id") @db.UnsignedBigInt
+  onHandQty    Decimal @default(0) @map("on_hand_qty") @db.Decimal(18, 4)
+  availableQty Decimal @default(0) @map("available_qty") @db.Decimal(18, 4)
+  lockedQty    Decimal @default(0) @map("locked_qty") @db.Decimal(18, 4)
+  warningQty   Decimal @default(0) @map("warning_qty") @db.Decimal(18, 4)
+
+  @@unique([tenantId, warehouseId, skuId], map: "uk_ec_stock_balance_tenant_wh_sku")
+  @@index([tenantId, skuId], map: "idx_ec_stock_balance_tenant_sku")
+  @@map("ec_stock_balance")
+}
 ```
 
 三个库存字段的含义：
@@ -273,18 +297,23 @@ onHandQty = availableQty + lockedQty
 
 ### 库存锁表 `ec_stock_lock`
 
-```text
-ec_stock_lock
-  id
-  tenant_id
-  warehouse_id
-  sku_id
-  order_id
-  order_no
-  qty
-  status
-  locked_at
-  released_at
+```prisma
+model EcStockLock {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId    BigInt    @map("tenant_id") @db.UnsignedBigInt
+  warehouseId BigInt    @map("warehouse_id") @db.UnsignedBigInt
+  skuId       BigInt    @map("sku_id") @db.UnsignedBigInt
+  orderId     BigInt    @map("order_id") @db.UnsignedBigInt
+  orderNo     String    @map("order_no") @db.VarChar(64)
+  qty         Decimal   @db.Decimal(18, 4)
+  status      String    @default("locked") @db.VarChar(32)
+  lockedAt    DateTime  @default(now()) @map("locked_at") @db.DateTime(3)
+  releasedAt  DateTime? @map("released_at") @db.DateTime(3)
+
+  @@index([tenantId, orderId], map: "idx_ec_stock_lock_tenant_order")
+  @@index([tenantId, skuId, status], map: "idx_ec_stock_lock_tenant_sku_status")
+  @@map("ec_stock_lock")
+}
 ```
 
 为什么锁库存还要单独建表：
@@ -296,20 +325,27 @@ ec_stock_lock
 
 ### 库存流水表 `ec_stock_movement`
 
-```text
-ec_stock_movement
-  id
-  tenant_id
-  warehouse_id
-  sku_id
-  movement_no
-  biz_type
-  biz_id
-  direction
-  qty
-  before_qty
-  after_qty
-  remark
+```prisma
+model EcStockMovement {
+  id          BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId    BigInt   @map("tenant_id") @db.UnsignedBigInt
+  warehouseId BigInt   @map("warehouse_id") @db.UnsignedBigInt
+  skuId       BigInt   @map("sku_id") @db.UnsignedBigInt
+  movementNo  String   @map("movement_no") @db.VarChar(64)
+  bizType     String   @map("biz_type") @db.VarChar(32)
+  bizId       BigInt?  @map("biz_id") @db.UnsignedBigInt
+  direction   String   @db.VarChar(16)
+  qty         Decimal  @db.Decimal(18, 4)
+  beforeQty   Decimal  @map("before_qty") @db.Decimal(18, 4)
+  afterQty    Decimal  @map("after_qty") @db.Decimal(18, 4)
+  remark      String?  @db.VarChar(255)
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.DateTime(3)
+
+  @@unique([tenantId, movementNo], map: "uk_ec_stock_movement_tenant_no")
+  @@index([tenantId, skuId, occurredAt], map: "idx_ec_stock_movement_tenant_sku_time")
+  @@index([tenantId, bizType, bizId], map: "idx_ec_stock_movement_tenant_biz")
+  @@map("ec_stock_movement")
+}
 ```
 
 为什么要有库存流水：
@@ -486,9 +522,24 @@ tenant_id + order_no 唯一
 库存防超卖的关键不是先查再更新：
 
 ```ts
-const stock = await db.stock.findUnique(...);
-if (stock.availableQty >= qty) {
-  await db.stock.update(...);
+const balance = await tx.ecStockBalance.findUnique({
+  where: {
+    tenantId_warehouseId_skuId: {
+      tenantId,
+      warehouseId,
+      skuId,
+    },
+  },
+});
+
+if (balance && Number(balance.availableQty) >= qty) {
+  await tx.ecStockBalance.update({
+    where: { id: balance.id },
+    data: {
+      availableQty: { decrement: qty },
+      lockedQty: { increment: qty },
+    },
+  });
 }
 ```
 
@@ -625,8 +676,24 @@ export class InventoryService {
 错误写法：
 
 ```ts
-const coupon = await db.coupon.findFirst({ status: 'available' });
-await db.coupon.update({ status: 'locked' });
+const coupon = await tx.mkCoupon.findFirst({
+  where: {
+    id: couponId,
+    memberId,
+    status: 'available',
+  },
+});
+
+if (coupon) {
+  await tx.mkCoupon.update({
+    where: { id: coupon.id },
+    data: {
+      status: 'locked',
+      lockedOrderId: orderId,
+      lockedAt: new Date(),
+    },
+  });
+}
 ```
 
 两个请求可能同时查到可用。
@@ -1368,16 +1435,22 @@ Idempotency-Key: uuid-from-client
 
 ### 幂等表 `sys_idempotency_key`
 
-```text
-sys_idempotency_key
-  id
-  key_hash
-  request_hash
-  status
-  response_json
-  expired_at
-  created_at
-  updated_at
+```prisma
+model SysIdempotencyKey {
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  keyHash      String    @map("key_hash") @db.VarChar(191)
+  requestHash  String    @map("request_hash") @db.VarChar(255)
+  status       String    @default("processing") @db.VarChar(32)
+  responseJson Json?     @map("response_json")
+  expiredAt    DateTime  @map("expired_at") @db.DateTime(3)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.DateTime(3)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.DateTime(3)
+  deletedAt    DateTime? @map("deleted_at") @db.DateTime(3)
+
+  @@unique([keyHash], map: "uk_sys_idempotency_key")
+  @@index([expiredAt], map: "idx_sys_idempotency_expired")
+  @@map("sys_idempotency_key")
+}
 ```
 
 为什么不直接保存原始 key：
@@ -1644,16 +1717,14 @@ curl -X POST http://localhost:3000/api/app/v1/orders/<orderId>/cancel \
 真实项目中可以重点看：
 
 ```text
-server/src/modules/order/order.controller.ts
-server/src/modules/order/order.service.ts
-server/src/modules/order/dto/create-order.dto.ts
-server/src/modules/order/dto/order-address.dto.ts
 
-server/src/modules/inventory/inventory.service.ts
-server/src/modules/marketing/marketing.service.ts
-server/src/common/interceptors/idempotency.interceptor.ts
 
-server/prisma/schema.prisma
+
+
+
+
+
+
   SysIdempotencyKey
   EcStockBalance
   EcStockMovement
@@ -1677,4 +1748,6 @@ server/prisma/schema.prisma
 | 幂等 | 教学版拦截器 | 全局 `IdempotencyInterceptor` |
 | 超时关单 | 示例定时任务 | OrderService 生命周期扫描 |
 | 支付扣库存 | 下一章强化 | mock pay 已有闭环 |
+
+
 

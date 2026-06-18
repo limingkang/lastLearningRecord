@@ -1,4 +1,4 @@
-一个后台系统的骨架。后面所有商品、订单、库存、支付模块，都是在这个骨架上继续长出来的：
+﻿一个后台系统的骨架。后面所有商品、订单、库存、支付模块，都是在这个骨架上继续长出来的：
 
 ```text
 启动服务
@@ -37,6 +37,12 @@ src/
       health.module.ts
       health.controller.ts
       health.service.ts
+    prisma/
+      prisma.module.ts
+      prisma.service.ts
+    redis/
+      redis.module.ts
+      redis.service.ts
     auth/
       auth.module.ts
       auth.controller.ts
@@ -44,8 +50,6 @@ src/
       dto/
         register.dto.ts
         login.dto.ts
-      session.service.ts
-      user.repository.ts
 ```
 
 | 目录 | 作用 |
@@ -53,6 +57,8 @@ src/
 | `main.ts` | 服务启动入口，挂全局管道、守卫、拦截器、异常过滤器 |
 | `app.module.ts` | 根模块，把业务模块组装起来 |
 | `modules/health` | 第一个最简单业务模块，用来验证服务可访问 |
+| `modules/prisma` | MySQL 连接模块，封装 `PrismaService` |
+| `modules/redis` | Redis 连接模块，保存登录态、缓存、锁等临时数据 |
 | `modules/auth` | 登录注册鉴权模块 |
 | `common` | 所有模块都可能用到的通用能力 |
 
@@ -62,7 +68,8 @@ src/
 
 ```bash
 npm install @nestjs/common @nestjs/core @nestjs/platform-fastify reflect-metadata rxjs
-npm install @nestjs/jwt bcryptjs class-validator class-transformer
+npm install @nestjs/config @nestjs/jwt bcryptjs class-validator class-transformer
+npm install @prisma/client prisma redis
 npm install -D typescript ts-node @types/node @types/bcryptjs
 ```
 
@@ -75,10 +82,23 @@ npm install -D typescript ts-node @types/node @types/bcryptjs
 | `@nestjs/platform-fastify` | 使用 Fastify 作为 HTTP 运行时 |
 | `reflect-metadata` | Nest 装饰器依赖 |
 | `rxjs` | Nest Interceptor 使用 Observable |
+| `@nestjs/config` | 读取 `.env` 里的 MySQL、Redis、JWT 配置 |
+| `@prisma/client` / `prisma` | 连接 MySQL 并读写 `schema.prisma` 里的业务表 |
+| `redis` | 连接 Redis，保存登录态、缓存、锁等临时数据 |
 | `@nestjs/jwt` | 生成和校验 JWT |
 | `bcryptjs` | 密码 hash |
 | `class-validator` | DTO 参数校验 |
 | `class-transformer` | 参数类型转换 |
+
+最小环境变量可以先这样配：
+
+```env
+APP_PORT=3000
+DATABASE_URL="mysql://root:password@127.0.0.1:3306/erp?connection_limit=10"
+REDIS_MODE=redis
+REDIS_URL="redis://127.0.0.1:6379/0"
+JWT_ACCESS_SECRET="dev-access-secret"
+```
 
 ### 创建 `main.ts`
 
@@ -136,11 +156,20 @@ void bootstrap();
 
 ```ts
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
+import { PrismaModule } from './modules/prisma/prisma.module';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
+    PrismaModule,
+    RedisModule,
     HealthModule,
     AuthModule,
   ],
@@ -152,7 +181,92 @@ export class AppModule {}
 
 - 它是整个服务端的模块入口。
 - 后面商品、订单、库存、支付等模块都加到这里。
+- `PrismaModule` 负责 MySQL 连接，`RedisModule` 负责 Redis 连接和登录态。
 - 不建议在 `main.ts` 里直接写业务模块，`main.ts` 只负责启动。
+
+### MySQL 连接代码
+
+Prisma 通过 `DATABASE_URL` 连接 MySQL。服务启动时连接，服务关闭时断开。
+
+```ts
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit() {
+    if (process.env.PRISMA_SKIP_CONNECT === 'true') {
+      return;
+    }
+    await this.$connect();
+  }
+
+  async onModuleDestroy() {
+    if (process.env.PRISMA_SKIP_CONNECT === 'true') {
+      return;
+    }
+    await this.$disconnect();
+  }
+}
+```
+
+```ts
+@Global()
+@Module({
+  providers: [PrismaService],
+  exports: [PrismaService],
+})
+export class PrismaModule {}
+```
+
+### Redis 连接代码
+
+Redis 用来保存登录态、缓存、锁和限流计数。开发环境可以用 memory 兜底，真实 Redis 模式由 `REDIS_MODE=redis` 开启。
+
+```ts
+@Injectable()
+export class RedisService implements OnModuleInit, OnModuleDestroy {
+  private client?: ReturnType<typeof createClient>;
+  private redisReady = false;
+  private redisLastError: string | null = null;
+
+  constructor(private readonly configService: ConfigService) {}
+
+  async onModuleInit() {
+    if ((this.configService.get<string>('REDIS_MODE') || 'memory') !== 'redis') {
+      return;
+    }
+
+    const url = this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379/0';
+    this.client = createClient({ url });
+    this.client.on('error', (error) => {
+      this.redisReady = false;
+      this.redisLastError = error instanceof Error ? error.message : String(error);
+    });
+
+    try {
+      await this.client.connect();
+      this.redisReady = true;
+      this.redisLastError = null;
+    } catch (error) {
+      this.redisReady = false;
+      this.redisLastError = error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  async onModuleDestroy() {
+    if (this.client?.isOpen) {
+      await this.client.quit().catch(() => undefined);
+    }
+  }
+}
+```
+
+```ts
+@Global()
+@Module({
+  providers: [RedisService],
+  exports: [RedisService],
+})
+export class RedisModule {}
+```
 
 ## 健康检查模块
 
@@ -436,13 +550,6 @@ export class LoginDto {
 
 当前项目没有再用内存数组保存后台用户。后台账号保存在 MySQL 的 `sys_admin_user` 表中，通过 `PrismaService` 读写。
 
-真实代码位置：
-
-```text
-server/src/modules/auth/auth.service.ts
-server/src/modules/system/system.service.ts
-server/prisma/schema.prisma
-```
 
 后台登录时，`AuthService.adminLogin()` 直接查询 `sysAdminUser`：
 
@@ -557,13 +664,6 @@ async createUser(admin: CurrentAdminPayload, dto: SystemUserMutationDto) {
 
 JWT 签发后，在过期前默认都能通过签名校验。后台系统还需要“服务端主动撤销登录态”的能力，所以当前项目会把登录态写到 Redis。
 
-真实代码位置：
-
-```text
-server/src/modules/redis/redis.service.ts
-server/src/common/guards/admin-auth.guard.ts
-server/src/common/guards/member-auth.guard.ts
-```
 
 登录成功后写 session：
 
@@ -875,12 +975,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MemberAuthGuard } from '../../common/guards/member-auth.guard';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { MarketingModule } from '../marketing/marketing.module';
 import { RedisModule } from '../redis/redis.module';
 
 @Module({
   imports: [
-    MarketingModule,
     RedisModule,
     JwtModule.registerAsync({
       global: true,
@@ -905,8 +1003,3 @@ import { RedisModule } from '../redis/redis.module';
 export class AuthModule {}
 ```
 
-这里和前面的“内存版”不同：
-
-- 没有 `UserRepository`，后台用户走 `PrismaService` 读写 MySQL。
-- 没有 `SessionService`，登录态写入 `RedisService`。
-- JWT 配置来自 `ConfigService`，不是在模块里写死。
