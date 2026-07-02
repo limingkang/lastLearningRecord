@@ -1,12 +1,12 @@
 module.exports = [
   {
     title: '项目优化',
-    path: '/',
+    path: '/projectOptimization/',
     collapsable: false,
     children: [
-      ['/webview/webview', 'webview如何优化'],
-      ['/componentsDesign/componentsDesign', '组件库设计'],
-      ['/jsbridge/jsbridge', 'jsbridge设计'],
+      ['/projectOptimization/webview', 'webview如何优化'],
+      ['/projectOptimization/componentsDesign/componentsDesign', '组件库设计'],
+      ['/projectOptimization/jsbridge/jsbridge', 'jsbridge设计'],
     ]
   },
   {
@@ -33,8 +33,8 @@ module.exports = [
     collapsable: false,
     children: [
       ['/babel/babel', 'babel小计'],
+      ['/webtest/webtest', '自动化测试'],
       ['/uniapp/uniapp', 'uniapp'],
-      ['/three/three', 'threejs'],
       ['/question/question', 'question'],
     ]
   },
