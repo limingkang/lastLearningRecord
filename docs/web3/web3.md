@@ -1,147 +1,779 @@
 ## 什么是区块链
-``区块链``这个概念是由一个网名为中本聪的人在2008年发表的《比特币：一种点对点的电子现金系统》中提出的。随后他实现了一个比特币系统，并发布了加密数字货币—比特币。接下来出现了以太坊和超级账本这样的大型区块链项目
+`区块链`这个概念是由中本聪在 2008 年发表的《比特币：一种点对点的电子现金系统》中提出的。随后比特币系统出现，后来又出现了以太坊、超级账本等区块链项目。
 
-区块链是计算机网络节点之间共享的分布式数据库或分类帐。它们以其在加密货币系统中维护安全和去中心化交易记录的关键作用而闻名，但它们并不局限于加密货币的用途。区块链可用于使任何行业的数据不可变——该术语用于描述无法更改的情况
+区块链可以理解为一套由很多节点共同维护的分布式账本。它和普通数据库最大的不同是：数据按区块组织，每个新区块会通过密码学方式链接到前一个区块上，形成一条很难被篡改的链。
 
 #### 特点
-1. 区块链是一种共享数据库，它与典型数据库的不同之处在于它存储信息的方式；区块链将数据存储在通过密码学链接在一起的块中。
-2. 不同类型的信息可以存储在区块链上，但交易最常见的用途是作为分类账。 
-3. 就比特币而言，区块链是去中心化的，因此没有任何个人或团体拥有控制权，相反，所有用户共同保留控制权。
-4. 去中心化区块链是不可变的，这意味着输入的数据是不可逆转的。对于比特币来说，交易被永久记录并可供任何人查看。
+1. 去中心化：数据不是只放在一个中心服务器，而是由多个节点共同维护。
+2. 不可篡改：区块一旦被确认，修改成本非常高。
+3. 可追溯：链上交易和状态变更可以被追踪。
+4. 公开透明：公链上的数据大多可以被任何人查看。
+5. 自动执行：智能合约可以按照代码规则自动执行。
 
 #### 运行原理
-区块链就是一个链表，而这个链表就是由一个个区块组成的，这些区块依次连接，形成一个不可篡改的链条，那么其中的运行过程我们也可以由此推出：
-1. 首先构成区块链的去中心化网络中的第一个节点，生成一个 创世区块
-2. 然后通过 挖矿 生成新的区块添加到区块链中
-3. 新的节点加入到去中心化网络中会先生成一个最新的区块链数据
-4. 随后每个节点生成的区块都会向网络中的其他节点进行广播
-5. 其他节点收到广播后会判断自己是否已经收到该区块，是的话就忽略，否的话会先校验该区块是否有效，如果是有效的区块则会添加到自己的区块链中
+早期比特币通过挖矿产生新区块；以太坊现在已经从 PoW 转向 PoS，不再使用传统挖矿。为了学习 Web3，先理解这个过程即可：
 
-区块链主要由三个核心技术构成，分别是 共识机制、智能合约、去中心化网络
+1. 用户发起一笔交易，例如转账、调用合约。
+2. 钱包对交易进行签名。
+3. 交易被广播到区块链网络。
+4. 验证者或矿工根据共识机制打包交易。
+5. 区块被确认后，链上状态发生变化。
+6. 前端通过 RPC、区块浏览器或索引服务读取最新状态。
 
-- 共识机制是区块链中的重要机制，不同的区块链项目可能使用不同的共识机制。网络中的各个节点根据共识机制达成共识，共同维护整个区块链网络
-- 智能合约不是区块链的必要组成，它是区块链 2.0 之后出现的技术。如果把区块链比作一个公司，智能合约相当于公司中的规章制度，员工工作的时候会依据规章制度形式，而在有智能合约的区块链中，链上的节点会依据智能合约进行工作
-- 去中心化网络不同于中心化网络。在中心化网络中，需要中心服务器，是一种星型的辐射结构
+区块链主要由这些核心部分构成：
 
-随着区块链的快速发展、区块链的应用范围越来越广，不同的区块链应用之间也有了比较大的差异
-1. 公有链是对外公开、任何人都可以参与的区块链。公有链是真正意义上的完全无中心化的区块链。它通过加密技术保证交易不可篡改，在不可信的网络环境中建立共识，从而形成去中心化的信用机制。公有链使用于数字货币、电子商务、互联网金融、知识产权等应用场景
-2. 联盟链仅限于联盟成员使用，因其只针对成员开放全部或部分功能，所以联盟链上的读写权限、以及记账规则都按联盟链规则来控制。联盟链适用于机构间的交易、结算、清算等B2B场景。超级账本项目即属于联盟链
-3. 私有链对单独的个人或实体开放，仅供在私有组织，比如公司内部使用，私有链上的读写权限，参与记账的权限都由私有组织来决定。私有链适用于企业、组织内部
-4. 侧链的概念最早产生于比特币的应用过程中，侧链实质上是指遵守侧链协议的所有区块链。侧链协议是一种可以让比特币安全地从比特币主链转移到其他区块链，又可以从其他区块链安全地比特币主链的协议;
-侧链本质上是一种跨区块链解决方案。通过这种解决方案，可以实现数字资产从第一个区块链到第二个区块链的转移，又可以在稍后的时间点从第二个区块链安全返回到第一个区块链
+``` text
+共识机制：决定谁来记账、如何确认区块
+账户系统：管理地址、余额、签名
+交易系统：用户发起链上操作
+智能合约：部署在链上的程序
+虚拟机：执行智能合约，例如 EVM
+节点网络：负责传播交易和区块
+```
 
-## web3智能合约概览
-web3.0这个概念我听说过，核心特征是去中心化、开放性、隐私保护和数据所有权回归个人。Web 1.0是信息浏览时代，Web 2.0是用户参与和社交网络时代，Web 3.0是去中心化与智能化时代。在Web3.0这一新的互联网架构下，用户不再仅仅是内容的消费者，更是自己数字身份和数据的拥有者。Web 3.0旨在构建一个更加透明、安全且高效的信息网络。我对Web3.0的了解是一些比较宽泛的东西，这次想比较详细的了解一下web3中的智能合约
+#### 区块链类型
+1. 公有链：任何人都可以参与，例如 Ethereum、Bitcoin。
+2. 联盟链：由多个机构共同维护，常用于机构间业务。
+3. 私有链：由某个组织内部控制，常用于企业内部场景。
+4. Layer2：建立在主链之上的扩容网络，例如 Optimistic Rollup、ZK Rollup。
+5. 侧链：独立运行，但可以和主链进行资产或消息跨链。
 
-智能合约是部署在区块链上的自动执行程序，它们在去中心化的网络中运行，确保交易的安全、透明且不可篡改。智能合约的核心优势在于能够在没有第三方中介的情况下，执行合同条款，降低信任成本和交易成本。在以太坊这样的区块链平台上，智能合约一旦部署，就无法修改，这保证了合约规则的不变性和执行的确定性。
+对前端开发者来说，最常接触的是 `EVM 公链` 和 `Layer2`，例如 Ethereum、Sepolia、Polygon、Arbitrum、Optimism、Base 等。
 
-Web3智能合约没有特定的“类型”，因为智能合约本身是一种灵活的编程模型，可以根据具体需求定制开发。然而，根据它们的应用场景和功能，我们可以将智能合约分为几种常见的类别或用途。以下是一些典型和广为人知的智能合约应用案例：
-1. 身份与认证合约:实现去中心化身份管理，如DID（Decentralized Identifiers）和可验证凭证，用于安全验证用户身份
-2. 供应链管理合约:跟踪产品从生产到交付的整个生命周期，确保透明度和防伪
+## Web3 学习路线
+如果从前端角度学习 Web3，不建议一开始就陷入各种币、交易所、复杂金融概念。更实用的路线是：
 
-每个合约都是根据特定业务逻辑定制编写的，使用Solidity、Vyper等语言编写，并部署在以太坊、EOS、波卡等区块链平台上。因此，智能合约的具体实现形式多种多样，几乎可以覆盖任何需要信任、透明度和自动化执行的场景
+``` text
+钱包和地址 -> RPC 和链 ID -> 智能合约 -> ABI -> 前端读合约 -> 前端写合约 -> 交易状态 -> 安全和测试
+```
 
-Solidity是一种专为编写智能合约而设计的高级编程语言，用于编写、编译并最终部署智能合约到区块链上。它是目前以太坊生态中最广泛使用的智能合约语言。Solidity是Web3智能合约开发的主要工具之一，智能合约使用Solidity编写后，编译成字节码，部署在以太坊等区块链平台的EVM上执行，Solidity的语法受到了C++、Python和JavaScript等语言的影响，对于熟悉这些语言的开发者来说，学习曲线相对平缓。
+建议按这个顺序学：
 
-在前端，Web3.js这样的JavaScript库常用于与以太坊区块链和部署在上面的智能合约进行交互，而这些智能合约通常是用Solidity编写的。Web3.js提供了一系列API，使前端开发者能够与以太坊区块链进行交互，包括调用智能合约、发送交易、读取账户余额、监听事件等。
+1. 先理解钱包、地址、私钥、公钥、助记词。
+2. 学会使用 MetaMask 连接测试网。
+3. 学会使用 Remix 部署一个简单合约。
+4. 理解 ABI、合约地址、RPC 节点。
+5. 前端用 viem / ethers / wagmi 调用合约。
+6. 学会处理链切换、账户切换、用户拒签、交易 pending/success/fail。
+7. 了解 ERC-20、ERC-721、ERC-1155 等常见标准。
+8. 学会基本的合约安全常识。
 
-#### web3钱包MetaMask
-web3钱包是一种数字钱包，方便用户安全的管理加密货币、非同质化代币(NFT)和其他数字资产，降低了用户与区块链网络和Dapp交互的难度。 本篇选择 MetaMask 作为钱包。优势：为浏览器插件交互简单，开源，用户基数大。使用之前可以得安装谷歌扩展程序MetaMask
-可以按照如下链接开始创建[地址](https://juejin.cn/post/7353075407761915916)
+## Web3 核心概念
 
-#### 部署一个合约
-Remix是一个专门编写智能合约的 WebIDE(web集成环境)，支持Solidity和Vyper，可从浏览器直接访问，并且连接到 MetaMask从而发布交易。
-所以我们只需要编写智能合约的代码，Remix会自动帮我们编译为EVM字节码，发布到区块链中。
-[跳转Remix](https://remix.ethereum.org/)在自动帮我们创建好的contracts目录下新建Lottery.sol
+### 钱包、账户和地址
+Web3 钱包不是“存币的软件”，更准确地说，它是管理私钥、签名交易、连接 DApp 的工具。
 
-[可以参考该链接](https://juejin.cn/post/7352877037127057444)
+``` text
+私钥：控制账户的核心，绝不能泄露
+助记词：私钥的恢复方式，绝不能泄露
+地址：由公钥推导出来，可以公开
+签名：证明你拥有某个地址的控制权
+钱包：帮你管理私钥和签名
+```
 
-#### 使用Web3.js与以太坊智能合约进行交互
-首先，你需要连接到一个以太坊节点。这可以是本地节点、也可以是Infura（Infura是ConsenSys开发的一个以太坊基础设施服务提供商，旨在让开发人员能够轻松地与以太坊网络交互，而无需自己运行和维
-护一个完整的以太坊节点）提供的节点或者其他任何公开的节点
-``` js
-const Web3 = require('web3');
-let web3Obj;
-// 使用HTTPProvider连接到Infura节点
-if (window.ethereum) {
-  // 使用MetaMask等浏览器插件钱包
-  window.web3Obj = new Web3(window.ethereum);
-  try {
-    // 请求用户授权
-    await window.ethereum.enable();
-    web3Obj = window.web3Obj;
-  } catch (error) {
-    console.error("User denied account access...");
+常见钱包：
+
+``` text
+MetaMask：浏览器插件和移动端都常见
+WalletConnect：让移动端钱包连接网页 DApp
+Coinbase Wallet：常见海外钱包
+OKX Wallet / Rabby：多链钱包
+```
+
+前端绝对不要保存用户私钥，也不要要求用户输入助记词。
+
+### RPC 节点
+前端本身不能直接访问区块链网络，通常通过 RPC 节点发请求。
+
+常见 RPC 服务：
+
+``` text
+Infura
+Alchemy
+QuickNode
+Ankr
+公共 RPC
+自建节点
+```
+
+RPC 能做什么：
+
+``` text
+读取账户余额
+读取区块高度
+读取交易详情
+调用合约只读方法
+发送已签名交易
+监听链上事件
+```
+
+### 链 ID
+不同链有不同 Chain ID。前端必须确认用户当前钱包连接的是正确网络。
+
+``` text
+Ethereum Mainnet: 1
+Sepolia Testnet: 11155111
+Polygon: 137
+Arbitrum One: 42161
+Optimism: 10
+Base: 8453
+```
+
+如果链不对，读合约可能读不到，写合约可能发到错误网络。
+
+### Gas 和交易费
+用户写入链上状态时需要支付 Gas，例如：
+
+``` text
+转账
+铸造 NFT
+授权 approve
+兑换 swap
+调用合约写方法
+```
+
+只读方法一般不需要用户支付 Gas，例如：
+
+``` text
+balanceOf
+ownerOf
+totalSupply
+allowance
+读取合约状态变量
+```
+
+### ABI 和合约地址
+前端调用合约通常需要两个东西：
+
+``` text
+合约地址：合约部署到链上的地址
+ABI：合约对外暴露的方法、事件、参数、返回值描述
+```
+
+可以把 ABI 理解为“前端调用智能合约的接口说明书”。
+
+示例 ABI：
+
+``` json
+[
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "stateMutability": "view",
+    "inputs": [{ "name": "account", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256" }]
   }
-} else if (typeof Web3 !== 'undefined') {
-  // 已有注入的Web3实例，例如 Mist 或 MetaMask
-  web3Obj = new Web3(Web3.currentProvider);
-} else {
-  // 作为最后手段，使用本地节点或公共节点
-  const provider = new Web3.providers.HttpProvider('https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID');
-  web3Obj = new Web3(provider);
-}
-console.log("Connected to Ethereum node:", web3Obj.version.api);
+]
 ```
-假设你已经有一个智能合约的ABI（Application Binary Interface）和合约地址，你可以创建一个合约实例来调用它的方法。
-``` js
-// 合约ABI
-const contractABI = [...]; // ABI数组，从合约编译得到
 
-// 合约地址
-const contractAddress = '0x...'; // 你的智能合约地址
+## 智能合约概览
+智能合约是部署在区块链上的自动执行程序。它们在链上运行，规则公开，执行结果可验证。
 
-// 创建合约实例
-const myContract = new web3Obj.eth.Contract(contractABI, contractAddress);
+在以太坊这样的链上，智能合约部署后默认不能像普通后端服务一样直接修改。想升级合约通常需要代理合约等特殊设计。因此智能合约开发比普通业务代码更需要谨慎。
 
-// 调用智能合约的读取方法（不需要交易）
-myContract.methods.totalSupply().call()
-  .then(console.log)
-  .catch(console.error);
+智能合约常见应用：
 
-// 发送交易调用智能合约的修改状态方法
-async function callContractMethod() {
-  const accounts = await web3Obj.eth.getAccounts(); // 获取用户账户
-  const sender = accounts[0];
+1. ERC-20 代币
+2. NFT
+3. 去中心化交易所
+4. 借贷协议
+5. DAO 治理
+6. 链上身份 DID
+7. 供应链追踪
+8. 游戏资产
 
-  // 假设智能合约有一个名为transfer的方法，需要两个参数：接收者地址和转移的数量
-  const txOptions = {
-    from: sender,
-    gasPrice: '0x09184e72a000', // 默认的gas价格
-    gas: 21000, // 默认的gas limit
-  };
-  
-  // RecipientAddress-接收地址
-  myContract.methods.transfer('0xRecipientAddress', web3Obj.utils.toWei('1', 'ether'))
-    .send(txOptions)
-    .on('transactionHash', hash => console.log(`Transaction hash: ${hash}`))
-    .on('confirmation', (confirmationNumber, receipt) => {
-      console.log(`Confirmation #${confirmationNumber}`);
-    })
-    .on('error', error => {
-      console.error('Error during transaction:', error);
-    });
+### Solidity
+Solidity 是目前 EVM 生态最常用的智能合约语言。它的语法受 JavaScript、C++、Python 等语言影响，前端开发者上手不算难，但合约安全要求很高。
+
+一个最简单的合约：
+
+``` solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract Counter {
+    uint256 public count;
+
+    event CountChanged(uint256 value);
+
+    function increment() public {
+        count += 1;
+        emit CountChanged(count);
+    }
+
+    function getCount() public view returns (uint256) {
+        return count;
+    }
 }
 ```
-发起转账操作完成之后，可以使用智能合约来监控区块链上的状态变化，并进行后续处理
-``` js
-myContract.events.MyEventName({ filter: { someFilterKey: someValue }, fromBlock: 0 }, function(error, event) { 
-  if (error) console.log(error)
-  console.log(event.returnValues);
-})
-.on('data', event => {
-  console.log(event); // 处理事件数据
-})
-.on('changed', changed => console.log(changed))
-.on('error', err => console.error(err));
+
+说明：
+
+``` text
+count：链上状态变量
+increment：写方法，会改变链上状态，需要发交易和支付 Gas
+getCount：读方法，不改变链上状态，不需要 Gas
+event：链上事件，前端可以监听
 ```
-## web3.js
+
+### Remix 部署合约
+Remix 是浏览器里的智能合约 IDE，适合入门学习。
+
+操作步骤：
+
+1. 打开 [Remix](https://remix.ethereum.org/)
+2. 新建 `Counter.sol`
+3. 复制上面的合约代码
+4. 在 Solidity Compiler 中编译
+5. 在 Deploy & Run Transactions 中选择环境
+6. 初学可以先选 `Remix VM`
+7. 熟悉后再选择 `Injected Provider - MetaMask` 连接测试网部署
+
+部署到测试网时要准备：
+
+``` text
+MetaMask 钱包
+Sepolia 测试网
+测试 ETH
+合约源码
+编译后的 ABI
+部署后的合约地址
+```
+
+## 前端如何连接钱包
+以前很多文章会写：
+
+``` js
+await window.ethereum.enable()
+```
+
+这个写法已经不推荐继续作为主示例。现在更常用的是 EIP-1193 的 `request` 方法。
+
+### 原生连接 MetaMask
+
+如果 TypeScript 项目里提示 `window.ethereum` 不存在，可以先加类型声明。
+
+`src/types/ethereum.d.ts`：
+
+``` ts
+interface Window {
+  ethereum?: {
+    request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+    on: (event: string, callback: (...args: any[]) => void) => void
+    removeListener?: (event: string, callback: (...args: any[]) => void) => void
+  }
+}
+```
+
+``` ts
+export async function connectWallet() {
+  if (!window.ethereum) {
+    throw new Error('请先安装 MetaMask')
+  }
+
+  const accounts = await window.ethereum.request({
+    method: 'eth_requestAccounts'
+  })
+
+  return accounts[0] as string
+}
+```
+
+获取当前链：
+
+``` ts
+export async function getChainId() {
+  const chainId = await window.ethereum.request({
+    method: 'eth_chainId'
+  })
+
+  return Number.parseInt(chainId as string, 16)
+}
+```
+
+监听账户切换和网络切换：
+
+``` ts
+export function listenWalletChange() {
+  if (!window.ethereum) return
+
+  window.ethereum.on('accountsChanged', (accounts: string[]) => {
+    console.log('账户变化:', accounts)
+  })
+
+  window.ethereum.on('chainChanged', (chainId: string) => {
+    console.log('网络变化:', Number.parseInt(chainId, 16))
+    window.location.reload()
+  })
+}
+```
+
+常见错误码：
+
+``` text
+4001：用户拒绝请求
+4100：没有授权
+4200：钱包不支持该方法
+4900：钱包和所有链断开连接
+4901：钱包和指定链断开连接
+```
+
+### 切换网络
+
+``` ts
+export async function switchToSepolia() {
+  if (!window.ethereum) {
+    throw new Error('请先安装钱包')
+  }
+
+  await window.ethereum.request({
+    method: 'wallet_switchEthereumChain',
+    params: [
+      {
+        chainId: '0xaa36a7'
+      }
+    ]
+  })
+}
+```
+
+`0xaa36a7` 是 Sepolia 的十六进制 Chain ID，也就是十进制 `11155111`。
+
+## 前端与合约交互
+
+前端和合约交互主要分两类：
+
+``` text
+读合约：不改链上状态，不需要用户签名，不消耗 Gas
+写合约：改变链上状态，需要用户钱包签名，需要 Gas
+```
+
+### 方案选择
+
+现在前端写 Web3，建议了解这些库：
+
+``` text
+viem：TypeScript 友好，轻量，适合直接读写链
+ethers：生态成熟，资料多，v6 写法和 v5 有差异
+wagmi：React Hooks，内部常搭配 viem 和 TanStack Query
+web3.js：老牌库，历史资料多，可以了解，但新项目不一定首选
+```
+
+如果你是前端学习路线：
+
+``` text
+React 项目：wagmi + viem
+Vue 项目：viem 或 ethers
+只写简单脚本：ethers 或 viem
+读老教程：遇到 web3.js 能看懂即可
+```
+
+### 使用 viem 读取合约
+
+安装：
+
+``` bash
+npm i viem
+```
+
+`src/web3/client.ts`：
+
+``` ts
+import { createPublicClient, http } from 'viem'
+import { sepolia } from 'viem/chains'
+
+export const publicClient = createPublicClient({
+  chain: sepolia,
+  transport: http(import.meta.env.VITE_SEPOLIA_RPC_URL)
+})
+```
+
+读取 Counter 合约：
+
+``` ts
+import { publicClient } from './client'
+
+const counterAddress = '0x你的合约地址'
+
+const counterAbi = [
+  {
+    type: 'function',
+    name: 'getCount',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const
+
+export async function readCount() {
+  const count = await publicClient.readContract({
+    address: counterAddress,
+    abi: counterAbi,
+    functionName: 'getCount'
+  })
+
+  return count
+}
+```
+
+### 使用 viem 写合约
+
+``` ts
+import { createWalletClient, custom } from 'viem'
+import { sepolia } from 'viem/chains'
+import { publicClient } from './client'
+
+const counterAddress = '0x你的合约地址'
+
+const counterAbi = [
+  {
+    type: 'function',
+    name: 'increment',
+    stateMutability: 'nonpayable',
+    inputs: [],
+    outputs: []
+  }
+] as const
+
+export async function increment() {
+  if (!window.ethereum) {
+    throw new Error('请先安装钱包')
+  }
+
+  const walletClient = createWalletClient({
+    chain: sepolia,
+    transport: custom(window.ethereum)
+  })
+
+  const [account] = await walletClient.requestAddresses()
+
+  const hash = await walletClient.writeContract({
+    account,
+    address: counterAddress,
+    abi: counterAbi,
+    functionName: 'increment'
+  })
+
+  const receipt = await publicClient.waitForTransactionReceipt({
+    hash
+  })
+
+  return receipt
+}
+```
+
+交易流程：
+
+``` text
+用户点击按钮
+前端调用 writeContract
+钱包弹窗
+用户确认或拒绝
+交易广播到链上
+前端拿到 transaction hash
+等待交易确认
+更新页面状态
+```
+
+### 使用 ethers v6
+
+安装：
+
+``` bash
+npm i ethers
+```
+
+连接钱包：
+
+``` ts
+import { BrowserProvider } from 'ethers'
+
+export async function getSigner() {
+  if (!window.ethereum) {
+    throw new Error('请先安装钱包')
+  }
+
+  const provider = new BrowserProvider(window.ethereum)
+  await provider.send('eth_requestAccounts', [])
+
+  return provider.getSigner()
+}
+```
+
+读取和写入合约：
+
+``` ts
+import { Contract } from 'ethers'
+import { getSigner } from './wallet'
+
+const counterAddress = '0x你的合约地址'
+const counterAbi = [
+  'function getCount() view returns (uint256)',
+  'function increment()'
+]
+
+export async function readCountByEthers() {
+  const signer = await getSigner()
+  const contract = new Contract(counterAddress, counterAbi, signer)
+  return contract.getCount()
+}
+
+export async function incrementByEthers() {
+  const signer = await getSigner()
+  const contract = new Contract(counterAddress, counterAbi, signer)
+  const tx = await contract.increment()
+  return tx.wait()
+}
+```
+
+### React 项目使用 wagmi
+
+安装：
+
+``` bash
+npm i wagmi viem@2.x @tanstack/react-query
+```
+
+`src/web3/config.ts`：
+
+``` ts
+import { createConfig, http } from 'wagmi'
+import { mainnet, sepolia } from 'wagmi/chains'
+
+export const config = createConfig({
+  chains: [mainnet, sepolia],
+  transports: {
+    [mainnet.id]: http(),
+    [sepolia.id]: http(import.meta.env.VITE_SEPOLIA_RPC_URL)
+  }
+})
+```
+
+入口包裹：
+
+``` tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider } from 'wagmi'
+import { config } from './web3/config'
+
+const queryClient = new QueryClient()
+
+export function App() {
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        {/* 页面内容 */}
+      </QueryClientProvider>
+    </WagmiProvider>
+  )
+}
+```
+
+读取账户：
+
+``` tsx
+import { useAccount, useConnect, useDisconnect } from 'wagmi'
+
+export function WalletPanel() {
+  const { address, isConnected } = useAccount()
+  const { connectors, connect } = useConnect()
+  const { disconnect } = useDisconnect()
+
+  if (isConnected) {
+    return (
+      <div>
+        <p>{address}</p>
+        <button onClick={() => disconnect()}>断开连接</button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {connectors.map((connector) => (
+        <button key={connector.uid} onClick={() => connect({ connector })}>
+          连接 {connector.name}
+        </button>
+      ))}
+    </div>
+  )
+}
+```
+
+## 交易状态处理
+
+Web3 前端一定要认真处理交易状态，否则用户体验会很差。
+
+常见状态：
+
+``` text
+idle：未开始
+connecting：连接钱包中
+wrongNetwork：网络错误
+confirming：等待用户在钱包确认
+pending：交易已发出，等待链上确认
+success：交易成功
+failed：交易失败
+rejected：用户拒绝签名
+```
+
+示例：
+
+``` ts
+type TxStatus =
+  | 'idle'
+  | 'confirming'
+  | 'pending'
+  | 'success'
+  | 'failed'
+  | 'rejected'
+
+async function sendTransaction() {
+  try {
+    status.value = 'confirming'
+
+    const hash = await writeContract()
+
+    status.value = 'pending'
+
+    await waitForReceipt(hash)
+
+    status.value = 'success'
+  } catch (error: any) {
+    if (error?.code === 4001) {
+      status.value = 'rejected'
+    } else {
+      status.value = 'failed'
+    }
+  }
+}
+```
+
+页面提示：
+
+``` text
+等待钱包确认：请在钱包中确认交易
+交易确认中：交易已提交，正在等待链上确认
+交易成功：操作成功
+用户拒绝：你取消了本次操作
+交易失败：链上交易失败，请稍后重试
+```
+
+## 常见代币标准
+
+### ERC-20
+ERC-20 是同质化代币标准，例如 USDT、USDC、很多项目代币。
+
+常见方法：
+
+``` text
+name
+symbol
+decimals
+totalSupply
+balanceOf
+transfer
+approve
+allowance
+transferFrom
+```
+
+前端特别要注意 `decimals`。链上整数不直接等于用户看到的金额。
+
+``` ts
+import { formatUnits, parseUnits } from 'viem'
+
+const rawBalance = 123000000n
+const decimals = 6
+
+const displayBalance = formatUnits(rawBalance, decimals)
+const transferAmount = parseUnits('1.5', decimals)
+```
+
+### ERC-721
+ERC-721 是 NFT 标准，每个 token 都是唯一的。
+
+常见方法：
+
+``` text
+ownerOf
+balanceOf
+tokenURI
+approve
+setApprovalForAll
+transferFrom
+safeTransferFrom
+```
+
+### ERC-1155
+ERC-1155 可以同时表示同质化和非同质化资产，常用于游戏道具、批量 NFT 等场景。
+
+## 合约安全和前端安全
+
+Web3 项目安全非常重要，因为很多操作直接和资产相关。
+
+### 合约侧常见风险
+1. 重入攻击
+2. 权限控制缺失
+3. 随机数不安全
+4. 整数精度和单位处理错误
+5. 未检查外部调用结果
+6. 升级合约权限过大
+7. 价格预言机被操纵
+8. approve 授权过大
+
+### 前端侧常见风险
+1. 连接了错误网络还允许交易。
+2. 金额精度用普通浮点数计算。
+3. 没处理用户拒签。
+4. 没展示交易 hash 和链上状态。
+5. 合约地址写错或环境混用。
+6. 把私钥、助记词、服务端密钥写到前端。
+7. 没校验用户输入的地址。
+8. 使用了钓鱼 RPC 或不可信脚本。
+
+地址校验：
+
+``` ts
+import { isAddress } from 'viem'
+
+export function validateAddress(address: string) {
+  if (!isAddress(address)) {
+    return '请输入正确的钱包地址'
+  }
+
+  return ''
+}
+```
+
+金额处理不要用浮点数直接算链上金额：
+
+``` ts
+import { parseUnits } from 'viem'
+
+const amount = parseUnits('0.01', 18)
+```
+
 
 ## 参考文档
-[以太坊中文社区](https://ethfans.org/)
+[Ethereum 智能合约文档](https://ethereum.org/developers/docs/smart-contracts/)
 
-[区块链中文社区](https://learnblockchain.cn/)
+[MetaMask 开发者文档](https://docs.metamask.io/metamask-connect/)
 
-[solidity中文文档](https://learnblockchain.cn/docs/solidity/)
+[EIP-1193 Provider API](https://eips.ethereum.org/EIPS/eip-1193)
 
-[web3js官方文档](https://web3js.readthedocs.io/en/v1.10.0/)
+[Solidity 官方文档](https://docs.soliditylang.org/)
+
+[Remix 官方文档](https://remix-ide.readthedocs.io/en/latest/)
+
+[viem 官方文档](https://viem.sh/docs/getting-started)
+
+[wagmi 官方文档](https://wagmi.sh/react/getting-started)
+
+[ethers v6 官方文档](https://docs.ethers.org/v6/getting-started/)
+
+[web3.js 官方文档](https://docs.web3js.org/)
+
+[ERC-20 标准](https://eips.ethereum.org/EIPS/eip-20)
+
+[ERC-721 标准](https://eips.ethereum.org/EIPS/eip-721)
