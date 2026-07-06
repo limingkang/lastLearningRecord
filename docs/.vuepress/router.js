@@ -59,6 +59,8 @@ module.exports = [
     collapsable: false,
     children: [
       ['/web3/web3', 'web3'],
+      ['/threejs/threejs', 'threejs'],
+      ['/python/python', 'python'],
     ]
   },
 ]
