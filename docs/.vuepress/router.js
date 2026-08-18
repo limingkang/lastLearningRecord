@@ -35,6 +35,7 @@ module.exports = [
       ['/babel/babel', 'babel小计'],
       ['/webtest/webtest', '自动化测试'],
       ['/uniapp/uniapp', 'uniapp'],
+      ['/operationMaintenance/operationMaintenance', '运维'],
       ['/question/question', 'question'],
     ]
   },
